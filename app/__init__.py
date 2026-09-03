@@ -92,6 +92,8 @@ def _run_schema_migrations(app):
             ('password_reset_expires', 'DATETIME'),
             ('show_menu_supplies', 'BOOLEAN DEFAULT 1'),
             ('show_menu_notes', 'BOOLEAN DEFAULT 1'),
+            ('failed_login_attempts', 'INTEGER DEFAULT 0'),
+            ('locked_until', 'DATETIME'),
         ],
         'charging_sessions': [
             ('tessie_charge_id', 'VARCHAR(50)'),

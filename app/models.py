@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 from datetime import date, datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -31,6 +32,10 @@ def get_currency_symbol(currency_code):
         return ''
     code = currency_code.strip().upper()
     return CURRENCY_SYMBOLS.get(code, currency_code)
+
+
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_LOCKOUT_MINUTES = 15
 
 
 # Association table for vehicle sharing
@@ -70,6 +75,10 @@ class User(UserMixin, db.Model):
     # Password reset
     password_reset_token = db.Column(db.String(100), unique=True, index=True)
     password_reset_expires = db.Column(db.DateTime)
+
+    # Login lockout
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime)
 
     # API access
     api_key = db.Column(db.String(64), unique=True, index=True)
@@ -119,22 +128,43 @@ class User(UserMixin, db.Model):
         return sorted(unique, key=lambda v: (v.make or '', v.model or '', v.name or ''))
 
     def generate_reset_token(self):
-        """Generate a password reset token valid for 1 hour"""
-        self.password_reset_token = secrets.token_urlsafe(48)
+        """Generate a password reset token valid for 1 hour.
+
+        Only a hash of the token is stored, so a leaked database can't be used
+        to reset passwords. The raw token (returned here) is what gets emailed.
+        """
+        raw_token = secrets.token_urlsafe(48)
+        self.password_reset_token = hashlib.sha256(raw_token.encode()).hexdigest()
         self.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
-        return self.password_reset_token
+        return raw_token
 
     def clear_reset_token(self):
         """Clear the password reset token"""
         self.password_reset_token = None
         self.password_reset_expires = None
 
+    def is_locked(self):
+        """Whether the account is currently locked out due to failed logins."""
+        return bool(self.locked_until and self.locked_until > datetime.utcnow())
+
+    def register_failed_login(self):
+        """Record a failed login attempt, locking the account after too many."""
+        self.failed_login_attempts = (self.failed_login_attempts or 0) + 1
+        if self.failed_login_attempts >= LOGIN_MAX_ATTEMPTS:
+            self.locked_until = datetime.utcnow() + timedelta(minutes=LOGIN_LOCKOUT_MINUTES)
+
+    def register_successful_login(self):
+        """Clear failed login state after a successful login."""
+        self.failed_login_attempts = 0
+        self.locked_until = None
+
     @staticmethod
     def get_by_reset_token(token):
         """Find user by valid (non-expired) reset token"""
         if not token:
             return None
-        user = User.query.filter_by(password_reset_token=token).first()
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        user = User.query.filter_by(password_reset_token=token_hash).first()
         if user and user.password_reset_expires and user.password_reset_expires > datetime.utcnow():
             return user
         return None

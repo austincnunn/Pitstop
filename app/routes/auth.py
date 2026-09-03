@@ -1,6 +1,8 @@
 import os
 import uuid
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+import requests
+from datetime import datetime
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
@@ -11,7 +13,7 @@ from app.security import (
     validate_webhook_url, admin_required, validate_hex_color, safe_int
 )
 from app.services.notifications import NotificationService
-from config import GITHUB_REPO
+from config import GITHUB_REPO, APP_VERSION
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -28,14 +30,22 @@ def login():
 
         user = User.query.filter_by(username=username).first()
 
-        if user and user.check_password(password):
+        if user and user.is_locked():
+            minutes_left = max(1, (user.locked_until - datetime.utcnow()).seconds // 60)
+            flash(_('Account locked due to too many failed login attempts. Try again in %(minutes)d minute(s).') % {'minutes': minutes_left}, 'error')
+        elif user and user.check_password(password):
+            user.register_successful_login()
+            db.session.commit()
             login_user(user, remember=remember)
             next_page = request.args.get('next')
             # Validate redirect URL to prevent open redirect attacks
             safe_redirect = get_safe_redirect_url(next_page, default=None)
             return redirect(safe_redirect or get_start_page_url(user))
-
-        flash(_('Invalid username or password'), 'error')
+        else:
+            if user:
+                user.register_failed_login()
+                db.session.commit()
+            flash(_('Invalid username or password'), 'error')
 
     registration_enabled = AppSettings.get('registration_enabled', 'true') == 'true'
     smtp_configured = bool(
@@ -123,6 +133,7 @@ def reset_password(token):
 
         user.set_password(password)
         user.clear_reset_token()
+        user.register_successful_login()
         db.session.commit()
 
         flash(_('Your password has been reset. Please log in.'), 'success')
@@ -196,6 +207,30 @@ def register():
         return redirect(url_for('auth.login'))
 
     return render_template('auth/register.html')
+
+
+@bp.route('/check-updates')
+@login_required
+def check_updates():
+    """Check GitHub releases for a newer version than the one currently running."""
+    try:
+        response = requests.get(
+            f'https://api.github.com/repos/{GITHUB_REPO}/releases/latest',
+            timeout=5,
+        )
+        response.raise_for_status()
+        release = response.json()
+        latest_version = release.get('tag_name', '').lstrip('v')
+
+        return jsonify({
+            'success': True,
+            'current_version': APP_VERSION,
+            'latest_version': latest_version,
+            'update_available': bool(latest_version) and latest_version != APP_VERSION,
+            'release_url': release.get('html_url'),
+        })
+    except requests.RequestException as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 @bp.route('/logout')
@@ -547,6 +582,7 @@ def edit_user(user_id):
                 flash(error_msg, 'error')
                 return render_template('auth/edit_user.html', user=user)
             user.set_password(new_password)
+            user.register_successful_login()
 
         is_admin = request.form.get('is_admin') == 'on'
         if user.id != current_user.id:

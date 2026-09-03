@@ -40,6 +40,37 @@ class TestLoginRoute:
         response = auth_client.get('/auth/login')
         assert response.status_code == 302
 
+    def test_lockout_after_max_failed_attempts(self, client, test_user):
+        for _ in range(5):
+            client.post('/auth/login', data={
+                'username': 'testuser',
+                'password': 'wrongpassword',
+            })
+
+        # Correct password is now rejected while locked out
+        response = client.post('/auth/login', data={
+            'username': 'testuser',
+            'password': 'TestPass123!',
+        }, follow_redirects=True)
+        assert b'Account locked' in response.data
+
+    def test_successful_login_resets_failed_attempts(self, client, test_user):
+        for _ in range(3):
+            client.post('/auth/login', data={
+                'username': 'testuser',
+                'password': 'wrongpassword',
+            })
+
+        response = client.post('/auth/login', data={
+            'username': 'testuser',
+            'password': 'TestPass123!',
+        })
+        assert response.status_code == 302
+
+        db.session.refresh(test_user)
+        assert test_user.failed_login_attempts == 0
+        assert test_user.locked_until is None
+
 
 class TestRegisterRoute:
     def test_get_register_renders_when_enabled(self, client, app):

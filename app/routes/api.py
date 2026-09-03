@@ -236,7 +236,8 @@ def process_reminders():
     if not (api_user or (current_user and current_user.is_authenticated and current_user.is_admin)):
         # Also allow internal calls with the app secret
         internal_token = request.headers.get('X-Internal-Token')
-        if internal_token != current_app.config.get('INTERNAL_API_KEY'):
+        expected_token = current_app.config.get('INTERNAL_API_KEY')
+        if not internal_token or not expected_token or internal_token != expected_token:
             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     from app.services.reminder_processor import process_due_reminders

@@ -12,6 +12,7 @@ class TestConfig:
     WTF_CSRF_ENABLED = False
     SERVER_NAME = 'localhost'
     SECRET_KEY = 'test-secret'
+    INTERNAL_API_KEY = 'test-internal-key'
     # Prevent file uploads from failing
     UPLOAD_FOLDER = '/tmp/may_test_uploads'
 

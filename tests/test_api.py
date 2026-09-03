@@ -127,7 +127,7 @@ class TestProcessReminders:
     def test_process_reminders_with_internal_token(self, client, app):
         resp = client.post(
             '/api/reminders/process',
-            headers={'X-Internal-Token': app.config['SECRET_KEY']}
+            headers={'X-Internal-Token': app.config['INTERNAL_API_KEY']}
         )
         assert resp.status_code == 200
 
