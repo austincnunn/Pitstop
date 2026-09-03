@@ -16,7 +16,7 @@
 
 # Project Overview
 
-Pitstop Maintenance Tracker (short name "Pitstop") is a self-hosted vehicle management application built with Flask. It tracks fuel consumption, expenses, maintenance, trips, EV charging, documents, reminders, and more. The GitHub repo remains `austincnunn/Willman` (not renamed alongside the app) — the app name, Docker image, and all other identifiers are "Pitstop".
+Pitstop Maintenance Tracker (short name "Pitstop") is a self-hosted vehicle management application built with Flask. It tracks fuel consumption, expenses, maintenance, trips, EV charging, documents, reminders, and more. The GitHub repo is `austincnunn/Pitstop`.
 
 ## Tech Stack
 
@@ -117,7 +117,7 @@ Migrations run automatically on container startup via `docker-entrypoint.sh`, wh
 Two workflows in `.github/workflows/`:
 
 - **`docker-publish.yml`** — on push to `main`: builds a single-platform image and pushes `ghcr.io/austincnunn/pitstop:latest` and `:<sha>` (no test gate).
-- **`docker.yml`** — on push to `dev` or a `v*` tag: runs `pytest tests/`, then builds a multi-platform image (linux/amd64, linux/arm64) and pushes to `ghcr.io/austincnunn/pitstop` (hardcoded — the GitHub repo itself stays `austincnunn/Willman`, so this doesn't derive from `github.repository`) tagged `dev` (dev branch), semver tags, and `latest` (only when triggered by a version tag).
+- **`docker.yml`** — on push to `dev` or a `v*` tag: runs `pytest tests/`, then builds a multi-platform image (linux/amd64, linux/arm64) and pushes to `ghcr.io/austincnunn/pitstop` tagged `dev` (dev branch), semver tags, and `latest` (only when triggered by a version tag).
 
 ### Creating a Release
 

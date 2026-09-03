@@ -50,7 +50,7 @@ def token_required(f):
 
 def generate_uid(prefix, item_id, user_id):
     """Generate a unique UID for calendar events."""
-    return f"{prefix}-{item_id}-{user_id}@willman-vehicle"
+    return f"{prefix}-{item_id}-{user_id}@pitstop-vehicle"
 
 
 def escape_ical(text):

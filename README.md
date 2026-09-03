@@ -56,7 +56,7 @@ Named Pitstop, because keeping on top of vehicle maintenance should be as quick 
 mkdir pitstop && cd pitstop
 
 # Download docker-compose.yml
-curl -O https://raw.githubusercontent.com/austincnunn/Willman/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/austincnunn/Pitstop/main/docker-compose.yml
 
 # Start the container
 docker compose up -d
@@ -332,5 +332,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/austincnunn/Willman/issues)
+- **Issues**: [GitHub Issues](https://github.com/austincnunn/Pitstop/issues)
 - **Documentation**: This README and in-app help
