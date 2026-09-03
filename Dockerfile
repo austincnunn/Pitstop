@@ -49,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # Use entrypoint to fix permissions then run as 'pitstop' user
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5151", "--workers", "2", "--threads", "4", "run:app"]
+CMD ["gunicorn", "--preload", "--bind", "0.0.0.0:5151", "--workers", "2", "--threads", "4", "run:app"]

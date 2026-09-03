@@ -1,0 +1,21 @@
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ w.title }}</h2>
+    <a href="{{ url_for('fuel.index') }}" class="text-sm text-primary-600 hover:text-primary-500">View all</a>
+</div>
+{% if recent_logs %}
+<ul class="divide-y divide-gray-200 dark:divide-gray-700">
+    {% for log in recent_logs %}
+    <li class="py-3">
+        <div class="flex justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ log.vehicle.name }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ log.date|format_date }} - {{ "%.1f"|format(log.volume or 0) }} {{ current_user.volume_unit }}</p>
+            </div>
+            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ "%.2f"|format(log.total_cost or 0) }} {{ current_user.currency }}</p>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-sm text-gray-500 dark:text-gray-400">No fuel logs yet.</p>
+{% endif %}

@@ -4,12 +4,27 @@
 {% block extra_scripts %}
 <!-- Chart.js - Only needed on dashboard -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<!-- SortableJS - drag-and-drop for dashboard widgets -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
+<style>
+    #widget-grid .widget-controls { display: none; }
+    #widget-grid[data-edit-mode="true"] .widget-controls { display: flex; }
+    #widget-grid[data-edit-mode="true"] .widget-card { cursor: grab; }
+    #widget-grid:not([data-edit-mode="true"]) .widget-card.widget-hidden { display: none; }
+    #widget-grid[data-edit-mode="true"] .widget-card.widget-hidden { opacity: 0.4; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="mb-8">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-    <p class="text-gray-500 dark:text-gray-400">Overview of your vehicles and expenses</p>
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <p class="text-gray-500 dark:text-gray-400">Overview of your vehicles and expenses</p>
+    </div>
+    <button type="button" id="edit-layout-btn" onclick="toggleEditMode()"
+            class="text-sm px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+        {{ _('Edit Layout') }}
+    </button>
 </div>
 
 <!-- Stats Cards -->
@@ -107,135 +122,19 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Monthly Spending Chart -->
-    <div class="lg:col-span-2 bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">{{ _('Monthly Spending') }}</h2>
-        <div style="height: 250px;">
-            <canvas id="spendingChart"></canvas>
+<div id="widget-grid" class="grid grid-cols-1 md:grid-cols-2 gap-8" data-edit-mode="false">
+    {% for w in current_user.get_dashboard_widgets() %}
+    <div class="widget-card bg-white dark:bg-gray-800 shadow rounded-lg p-6 {% if w.id == 'monthly_spending' %}md:col-span-2{% endif %} {% if not w.visible %}widget-hidden{% endif %}"
+         data-widget-id="{{ w.id }}">
+        <div class="widget-controls items-center justify-between mb-2 text-gray-400">
+            <span class="drag-handle cursor-grab select-none text-lg" title="{{ _('Drag to reorder') }}">&#10021;</span>
+            <button type="button" class="widget-toggle-visibility text-xs text-primary-600 hover:text-primary-500" onclick="toggleWidgetVisibility(this)">
+                {{ _('Hide') if w.visible else _('Show') }}
+            </button>
         </div>
+        {% include 'dashboard_widgets/_' + w.id + '.html' %}
     </div>
-
-    <!-- Cheapest Stations Widget -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Cheapest Fuel') }}</h2>
-            <a href="{{ url_for('stations.cheapest') }}" class="text-sm text-primary-600 hover:text-primary-500">{{ _('View all') }}</a>
-        </div>
-        {% if cheapest_stations %}
-        <ul class="space-y-3">
-            {% for price in cheapest_stations %}
-            <li class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    {% if loop.index == 1 %}
-                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 text-xs font-bold">1</span>
-                    {% else %}
-                    <span class="inline-flex items-center justify-center w-5 h-5 text-gray-400 text-xs">{{ loop.index }}</span>
-                    {% endif %}
-                    <div>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate" style="max-width: 120px;">{{ price.station.name }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 capitalize">{{ price.fuel_type }}</p>
-                    </div>
-                </div>
-                <p class="text-sm font-semibold {% if loop.index == 1 %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
-                    {{ "%.3f"|format(price.price_per_unit) }}
-                </p>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('No price data yet. Add fuel stations and log fuel to track prices.') }}</p>
-        {% endif %}
-    </div>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-    <!-- Vehicles List -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Your Vehicles') }}</h2>
-            <a href="{{ url_for('vehicles.new') }}" class="text-sm text-primary-600 hover:text-primary-500">+ {{ _('Add') }}</a>
-        </div>
-        {% if vehicles %}
-        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-            {% for vehicle in vehicles %}
-            <li class="py-3">
-                <a href="{{ url_for('vehicles.view', vehicle_id=vehicle.id) }}" class="flex items-center hover:bg-gray-50 dark:bg-gray-700 -mx-2 px-2 rounded">
-                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        {% if vehicle.vehicle_type == 'car' %}
-                        <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8m-8 4h8m-4-8v16M5 17h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
-                        {% elif vehicle.vehicle_type == 'motorbike' %}
-                        <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        {% else %}
-                        <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
-                        {% endif %}
-                    </div>
-                    <div class="ml-3 flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ vehicle.name }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ vehicle.make }} {{ vehicle.model }}</p>
-                    </div>
-                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-sm text-gray-500 dark:text-gray-400">No vehicles yet. <a href="{{ url_for('vehicles.new') }}" class="text-primary-600 hover:text-primary-500">Add your first vehicle</a></p>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Recent Activity -->
-<div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-white">Recent Fuel Logs</h2>
-            <a href="{{ url_for('fuel.index') }}" class="text-sm text-primary-600 hover:text-primary-500">View all</a>
-        </div>
-        {% if recent_logs %}
-        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-            {% for log in recent_logs %}
-            <li class="py-3">
-                <div class="flex justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ log.vehicle.name }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ log.date|format_date }} - {{ "%.1f"|format(log.volume or 0) }} {{ current_user.volume_unit }}</p>
-                    </div>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ "%.2f"|format(log.total_cost or 0) }} {{ current_user.currency }}</p>
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-sm text-gray-500 dark:text-gray-400">No fuel logs yet.</p>
-        {% endif %}
-    </div>
-
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-white">Recent Expenses</h2>
-            <a href="{{ url_for('expenses.index') }}" class="text-sm text-primary-600 hover:text-primary-500">View all</a>
-        </div>
-        {% if recent_expenses %}
-        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-            {% for expense in recent_expenses %}
-            <li class="py-3">
-                <div class="flex justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ expense.description }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ expense.vehicle.name }} - {{ expense.date|format_date }}</p>
-                    </div>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ "%.2f"|format(expense.cost) }} {{ current_user.currency }}</p>
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-sm text-gray-500 dark:text-gray-400">No expenses yet.</p>
-        {% endif %}
-    </div>
+    {% endfor %}
 </div>
 
 <script>
@@ -279,6 +178,39 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    new Sortable(document.getElementById('widget-grid'), {
+        handle: '.drag-handle',
+        animation: 150,
+        onEnd: saveDashboardLayout,
+    });
 });
+
+function toggleEditMode() {
+    const grid = document.getElementById('widget-grid');
+    const btn = document.getElementById('edit-layout-btn');
+    const editing = grid.getAttribute('data-edit-mode') === 'true';
+    grid.setAttribute('data-edit-mode', editing ? 'false' : 'true');
+    btn.textContent = editing ? {{ _('Edit Layout')|tojson }} : {{ _('Done')|tojson }};
+}
+
+function toggleWidgetVisibility(btn) {
+    const card = btn.closest('.widget-card');
+    card.classList.toggle('widget-hidden');
+    const hidden = card.classList.contains('widget-hidden');
+    btn.textContent = hidden ? {{ _('Show')|tojson }} : {{ _('Hide')|tojson }};
+    saveDashboardLayout();
+}
+
+function saveDashboardLayout() {
+    const cards = Array.from(document.querySelectorAll('#widget-grid .widget-card'));
+    const order = cards.map(c => c.dataset.widgetId);
+    const hidden = cards.filter(c => c.classList.contains('widget-hidden')).map(c => c.dataset.widgetId);
+    fetch('/api/dashboard-layout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order, hidden }),
+    }).catch(() => {});
+}
 </script>
 {% endblock %}

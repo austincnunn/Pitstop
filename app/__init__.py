@@ -94,6 +94,12 @@ def _run_schema_migrations(app):
             ('show_menu_notes', 'BOOLEAN DEFAULT TRUE'),
             ('failed_login_attempts', 'INTEGER DEFAULT 0'),
             ('locked_until', 'TIMESTAMP'),
+            ('dashboard_widget_order', 'VARCHAR(255)'),
+            ('show_widget_monthly_spending', 'BOOLEAN DEFAULT TRUE'),
+            ('show_widget_cheapest_fuel', 'BOOLEAN DEFAULT TRUE'),
+            ('show_widget_vehicles', 'BOOLEAN DEFAULT TRUE'),
+            ('show_widget_recent_fuel', 'BOOLEAN DEFAULT TRUE'),
+            ('show_widget_recent_expenses', 'BOOLEAN DEFAULT TRUE'),
         ],
         'charging_sessions': [
             ('tessie_charge_id', 'VARCHAR(50)'),

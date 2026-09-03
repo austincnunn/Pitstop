@@ -90,6 +90,25 @@ def toggle_dark_mode():
     return jsonify({'dark_mode': current_user.dark_mode})
 
 
+@bp.route('/dashboard-layout', methods=['POST'])
+@login_required
+def save_dashboard_layout():
+    """Save the current user's dashboard widget order and visibility"""
+    from app.models import DASHBOARD_WIDGETS
+
+    data = request.get_json(silent=True) or {}
+    order = [w for w in data.get('order', []) if w in DASHBOARD_WIDGETS]
+    hidden = set(data.get('hidden', []))
+
+    if order:
+        current_user.dashboard_widget_order = ','.join(order)
+    for widget_id in DASHBOARD_WIDGETS:
+        setattr(current_user, f'show_widget_{widget_id}', widget_id not in hidden)
+
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @bp.route('/key/generate', methods=['POST'])
 @login_required
 def generate_api_key():

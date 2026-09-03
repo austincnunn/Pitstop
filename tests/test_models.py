@@ -64,6 +64,30 @@ class TestUserApiKey:
         assert test_user.api_key_created_at is None
 
 
+class TestUserDashboardWidgets:
+    def test_default_order_all_visible(self, test_user):
+        widgets = test_user.get_dashboard_widgets()
+        assert [w['id'] for w in widgets] == [
+            'monthly_spending', 'cheapest_fuel', 'vehicles', 'recent_fuel', 'recent_expenses'
+        ]
+        assert all(w['visible'] for w in widgets)
+
+    def test_custom_order_and_hidden_widget(self, test_user):
+        test_user.dashboard_widget_order = 'vehicles,monthly_spending,cheapest_fuel,recent_fuel,recent_expenses'
+        test_user.show_widget_recent_expenses = False
+        widgets = test_user.get_dashboard_widgets()
+        assert [w['id'] for w in widgets][0] == 'vehicles'
+        hidden = {w['id']: w['visible'] for w in widgets}
+        assert hidden['recent_expenses'] is False
+        assert hidden['vehicles'] is True
+
+    def test_unknown_widget_id_in_stored_order_ignored(self, test_user):
+        test_user.dashboard_widget_order = 'not_a_real_widget,vehicles'
+        widgets = test_user.get_dashboard_widgets()
+        assert 'not_a_real_widget' not in [w['id'] for w in widgets]
+        assert widgets[0]['id'] == 'vehicles'
+
+
 class TestUserResetToken:
     def test_generate_reset_token(self, test_user):
         token = test_user.generate_reset_token()

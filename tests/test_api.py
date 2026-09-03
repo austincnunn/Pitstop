@@ -26,6 +26,34 @@ class TestToggleDarkMode:
         assert resp.status_code in (302, 401)
 
 
+class TestDashboardLayout:
+    def test_save_order_and_hidden(self, auth_client, test_user):
+        resp = auth_client.post('/api/dashboard-layout', json={
+            'order': ['vehicles', 'monthly_spending', 'cheapest_fuel', 'recent_fuel', 'recent_expenses'],
+            'hidden': ['recent_expenses'],
+        })
+        assert resp.status_code == 200
+        assert resp.get_json()['success'] is True
+
+        _db_ext.session.refresh(test_user)
+        assert test_user.dashboard_widget_order == 'vehicles,monthly_spending,cheapest_fuel,recent_fuel,recent_expenses'
+        assert test_user.show_widget_recent_expenses is False
+        assert test_user.show_widget_vehicles is True
+
+    def test_unknown_widget_id_ignored(self, auth_client, test_user):
+        resp = auth_client.post('/api/dashboard-layout', json={
+            'order': ['not_a_real_widget', 'vehicles'],
+            'hidden': [],
+        })
+        assert resp.status_code == 200
+        _db_ext.session.refresh(test_user)
+        assert 'not_a_real_widget' not in (test_user.dashboard_widget_order or '')
+
+    def test_unauthenticated(self, client):
+        resp = client.post('/api/dashboard-layout', json={'order': [], 'hidden': []})
+        assert resp.status_code in (302, 401)
+
+
 class TestApiKeyManagement:
     def test_generate_api_key(self, auth_client, test_user):
         resp = auth_client.post('/api/key/generate')

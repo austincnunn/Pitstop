@@ -37,6 +37,16 @@ def get_currency_symbol(currency_code):
 LOGIN_MAX_ATTEMPTS = 5
 LOGIN_LOCKOUT_MINUTES = 15
 
+# Dashboard widgets: id -> display title. Order here is the default order
+# for users who haven't customized their layout.
+DASHBOARD_WIDGETS = {
+    'monthly_spending': _l('Monthly Spending'),
+    'cheapest_fuel': _l('Cheapest Fuel'),
+    'vehicles': _l('Your Vehicles'),
+    'recent_fuel': _l('Recent Fuel Logs'),
+    'recent_expenses': _l('Recent Expenses'),
+}
+
 
 # Association table for vehicle sharing
 vehicle_users = db.Table('vehicle_users',
@@ -100,6 +110,14 @@ class User(UserMixin, db.Model):
     show_menu_notes = db.Column(db.Boolean, default=True)
     show_quick_entry = db.Column(db.Boolean, default=True)  # Show quick entry button in navbar
 
+    # Dashboard widget preferences
+    dashboard_widget_order = db.Column(db.String(255))  # comma-separated widget ids, None = default order
+    show_widget_monthly_spending = db.Column(db.Boolean, default=True)
+    show_widget_cheapest_fuel = db.Column(db.Boolean, default=True)
+    show_widget_vehicles = db.Column(db.Boolean, default=True)
+    show_widget_recent_fuel = db.Column(db.Boolean, default=True)
+    show_widget_recent_expenses = db.Column(db.Boolean, default=True)
+
     # Relationships
     owned_vehicles = db.relationship('Vehicle', backref='owner', lazy='dynamic',
                                      foreign_keys='Vehicle.owner_id')
@@ -126,6 +144,22 @@ class User(UserMixin, db.Model):
                 seen.add(v.id)
                 unique.append(v)
         return sorted(unique, key=lambda v: (v.make or '', v.model or '', v.name or ''))
+
+    def get_dashboard_widgets(self):
+        """Ordered list of {id, title, visible} dicts for the dashboard, per this user's preferences."""
+        stored_order = (self.dashboard_widget_order or '').split(',') if self.dashboard_widget_order else []
+        order = [w for w in stored_order if w in DASHBOARD_WIDGETS]
+        order += [w for w in DASHBOARD_WIDGETS if w not in order]
+
+        widgets = []
+        for widget_id in order:
+            visible = getattr(self, f'show_widget_{widget_id}', True)
+            widgets.append({
+                'id': widget_id,
+                'title': DASHBOARD_WIDGETS[widget_id],
+                'visible': visible if visible is not None else True,
+            })
+        return widgets
 
     def generate_reset_token(self):
         """Generate a password reset token valid for 1 hour.

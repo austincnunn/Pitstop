@@ -1,0 +1,28 @@
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ w.title }}</h2>
+    <a href="{{ url_for('stations.cheapest') }}" class="text-sm text-primary-600 hover:text-primary-500">{{ _('View all') }}</a>
+</div>
+{% if cheapest_stations %}
+<ul class="space-y-3">
+    {% for price in cheapest_stations %}
+    <li class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            {% if loop.index == 1 %}
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 text-xs font-bold">1</span>
+            {% else %}
+            <span class="inline-flex items-center justify-center w-5 h-5 text-gray-400 text-xs">{{ loop.index }}</span>
+            {% endif %}
+            <div>
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate" style="max-width: 120px;">{{ price.station.name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 capitalize">{{ price.fuel_type }}</p>
+            </div>
+        </div>
+        <p class="text-sm font-semibold {% if loop.index == 1 %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
+            {{ "%.3f"|format(price.price_per_unit) }}
+        </p>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-sm text-gray-500 dark:text-gray-400">{{ _('No price data yet. Add fuel stations and log fuel to track prices.') }}</p>
+{% endif %}
