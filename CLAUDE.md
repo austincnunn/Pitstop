@@ -91,7 +91,7 @@ Pitstop Maintenance Tracker (short name "Pitstop") is a self-hosted vehicle mana
 
 ## Database
 
-SQLite database stored at `data/pitstop.db` (path configurable via `DATABASE_URL`). The project uses Flask-Migrate (Alembic); the `migrations/` folder is already committed.
+PostgreSQL is the recommended backend, set via `DATABASE_URL` (e.g. `postgresql+psycopg://user:pass@host:5432/pitstop`) — see the `postgres` service in `docker-compose.yml`. SQLite is still supported as a lightweight fallback (`DATABASE_URL=sqlite:////app/data/pitstop.db`, the default when `DATABASE_URL` is unset) for single-user/low-concurrency setups. The project uses Flask-Migrate (Alembic); the `migrations/` folder is already committed.
 
 ### Setup
 

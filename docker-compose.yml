@@ -8,5 +8,28 @@ services:
     volumes:
       - /user/appdata/pitstop:/app/data
     environment:
-      - DATABASE_URL=sqlite:////app/data/pitstop.db
+      - DATABASE_URL=postgresql+psycopg://pitstop:changeme@postgres:5432/pitstop
       - UPLOAD_FOLDER=/app/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: pitstop-postgres
+    restart: unless-stopped
+    volumes:
+      - /user/appdata/pitstop-postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=pitstop
+      - POSTGRES_USER=pitstop
+      - POSTGRES_PASSWORD=changeme
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pitstop -d pitstop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+# To use SQLite instead, drop the postgres service above and set on pitstop:
+#   environment:
+#     - DATABASE_URL=sqlite:////app/data/pitstop.db

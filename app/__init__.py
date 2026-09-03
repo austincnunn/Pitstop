@@ -79,21 +79,21 @@ def _run_schema_migrations(app):
     migrations = {
         'vehicles': [
             ('tessie_vin', 'VARCHAR(20)'),
-            ('tessie_enabled', 'BOOLEAN DEFAULT 0'),
+            ('tessie_enabled', 'BOOLEAN DEFAULT FALSE'),
             ('tessie_last_odometer', 'FLOAT'),
             ('tessie_battery_level', 'INTEGER'),
             ('tessie_battery_range', 'FLOAT'),
-            ('tessie_last_updated', 'DATETIME'),
+            ('tessie_last_updated', 'TIMESTAMP'),
             ('tracking_unit', "VARCHAR(20) DEFAULT 'mileage'"),
         ],
         'users': [
             ('date_format', "VARCHAR(20) DEFAULT 'DD/MM/YYYY'"),
             ('password_reset_token', 'VARCHAR(100)'),
-            ('password_reset_expires', 'DATETIME'),
-            ('show_menu_supplies', 'BOOLEAN DEFAULT 1'),
-            ('show_menu_notes', 'BOOLEAN DEFAULT 1'),
+            ('password_reset_expires', 'TIMESTAMP'),
+            ('show_menu_supplies', 'BOOLEAN DEFAULT TRUE'),
+            ('show_menu_notes', 'BOOLEAN DEFAULT TRUE'),
             ('failed_login_attempts', 'INTEGER DEFAULT 0'),
-            ('locked_until', 'DATETIME'),
+            ('locked_until', 'TIMESTAMP'),
         ],
         'charging_sessions': [
             ('tessie_charge_id', 'VARCHAR(50)'),

@@ -51,6 +51,8 @@ Named Pitstop, because keeping on top of vehicle maintenance should be as quick 
 
 ### Quick Start with Docker
 
+The provided `docker-compose.yml` runs Pitstop with a PostgreSQL database (recommended for real deployments — see `DATABASE_URL` under Environment Variables below for the lightweight SQLite alternative).
+
 ```bash
 # Create a directory for Pitstop
 mkdir pitstop && cd pitstop
@@ -58,11 +60,11 @@ mkdir pitstop && cd pitstop
 # Download docker-compose.yml
 curl -O https://raw.githubusercontent.com/austincnunn/Pitstop/main/docker-compose.yml
 
-# Start the container
+# Start the containers
 docker compose up -d
 ```
 
-Or run directly with Docker:
+Or run directly with Docker (uses SQLite, no separate database container needed):
 
 ```bash
 docker run -d \
@@ -118,7 +120,7 @@ python run.py
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `SECRET_KEY` | Session encryption key — auto-generated and persisted on first run if not set | Auto-generated |
-| `DATABASE_URL` | Database connection string | `sqlite:///data/pitstop.db` |
+| `DATABASE_URL` | Database connection string (Postgres recommended, e.g. `postgresql+psycopg://user:pass@host:5432/pitstop`) | `sqlite:///data/pitstop.db` |
 | `UPLOAD_FOLDER` | Path for file uploads | `/app/data/uploads` |
 | `ADMIN_PASSWORD` | Password for the default admin account | Auto-generated |
 | `TAILWIND_ASSET_URL` | Local Tailwind Play CDN JS path | `/static/vendor/tailwindcss.js` |
