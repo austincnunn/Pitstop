@@ -50,11 +50,6 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
 
-    <!-- Google Fonts - Atkinson Hyperlegible -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-
     <!-- Tailwind CSS - Critical for styling, loaded first -->
     <script>
         window.tailwind = window.tailwind || {};
@@ -111,7 +106,7 @@
             darkMode: 'class',
             theme: {
                 fontFamily: {
-                    sans: ['"Atkinson Hyperlegible"', 'ui-sans-serif', 'system-ui', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+                    sans: ['ui-sans-serif', 'system-ui', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
                 },
                 extend: {
                     colors: {
@@ -167,8 +162,8 @@
     {% block extra_scripts %}{% endblock %}
     <style>
         /* Critical dark mode styles - renders before Tailwind JS compiles */
-        html, body, .font-sans { 
-            font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important; 
+        html, body, .font-sans {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
         }
         html.dark { color-scheme: dark; }
         html.dark body { background-color: #111827; color: #f9fafb; }

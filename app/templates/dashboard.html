@@ -126,9 +126,9 @@
     {% for w in current_user.get_dashboard_widgets() %}
     <div class="widget-card bg-white dark:bg-gray-800 shadow rounded-lg p-6 {% if w.id == 'monthly_spending' %}md:col-span-2{% endif %} {% if not w.visible %}widget-hidden{% endif %}"
          data-widget-id="{{ w.id }}">
-        <div class="widget-controls items-center justify-between mb-2 text-gray-400">
-            <span class="drag-handle cursor-grab select-none text-lg" title="{{ _('Drag to reorder') }}">&#10021;</span>
-            <button type="button" class="widget-toggle-visibility text-xs text-primary-600 hover:text-primary-500" onclick="toggleWidgetVisibility(this)">
+        <div class="widget-controls items-center justify-between mb-2 -mt-2 -mx-2">
+            <span class="drag-handle cursor-grab select-none text-2xl leading-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2" title="{{ _('Drag to reorder') }}">&#10021;</span>
+            <button type="button" class="widget-toggle-visibility text-sm font-medium text-primary-600 hover:text-primary-500 px-3 py-2" onclick="toggleWidgetVisibility(this)">
                 {{ _('Hide') if w.visible else _('Show') }}
             </button>
         </div>
