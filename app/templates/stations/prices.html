@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Price History - {{ station.name }}{% endblock %}
+
+{% block extra_scripts %}
+<!-- Chart.js - Needed for price history chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{{ url_for('stations.index') }}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; {{ _('Back to stations') }}</a>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mt-2">{{ station.name }}</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+        {% if station.brand %}{{ station.brand }} &middot; {% endif %}
+        {{ station.address or station.city or _('No address') }}
+    </p>
+</div>
+
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Price History') }}</h2>
+    </div>
+
+    {% if prices %}
+    <!-- Price Chart -->
+    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div style="position: relative; height: 300px;">
+            <canvas id="priceChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Price List -->
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for price in prices %}
+        <li class="px-6 py-4 flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ price.date|format_date }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 capitalize">{{ price.fuel_type }}</p>
+            </div>
+            <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ "%.3f"|format(price.price_per_unit) }} {{ current_user.currency }}/{{ current_user.volume_unit }}</p>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="p-6 text-center text-gray-500 dark:text-gray-400">
+        {{ _('No price history available for this station.') }}
+        <p class="text-sm mt-2">{{ _('Prices are automatically recorded when you log fuel at this station.') }}</p>
+    </div>
+    {% endif %}
+</div>
+
+{% if prices %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    const prices = {{ prices_json | tojson }};
+
+    // Reverse to show chronological order
+    const sortedPrices = prices.slice().reverse();
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sortedPrices.map(p => {
+                const date = new Date(p.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }),
+            datasets: [{
+                label: '{{ _("Price per") }} {{ current_user.volume_unit }}',
+                data: sortedPrices.map(p => p.price_per_unit),
+                borderColor: 'rgb(14, 165, 233)',
+                backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

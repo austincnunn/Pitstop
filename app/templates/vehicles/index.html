@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Vehicles') }}{% endblock %}
+
+{% block content %}
+<div class="sm:flex sm:items-center sm:justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{% if show_archived %}{{ _('Archived Vehicles') }}{% else %}{{ _('Vehicles') }}{% endif %}</h1>
+        <p class="text-gray-500 dark:text-gray-400">{{ _('Manage your cars, vans, motorbikes, and scooters') }}</p>
+    </div>
+    <div class="mt-4 sm:mt-0 flex items-center gap-3">
+        {% if archived_count > 0 %}
+        <a href="{{ url_for('vehicles.index', archived='true' if not show_archived else 'false') }}"
+           class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-700">
+            {% if show_archived %}
+            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            {{ _('Active Vehicles') }}
+            {% else %}
+            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+            </svg>
+            {{ _('Archived') }} ({{ archived_count }})
+            {% endif %}
+        </a>
+        {% endif %}
+        <a href="{{ url_for('vehicles.new') }}"
+           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ _('Add Vehicle') }}
+        </a>
+    </div>
+</div>
+
+{% if vehicles %}
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {% for vehicle in vehicles %}
+    <a href="{{ url_for('vehicles.view', vehicle_id=vehicle.id) }}"
+       class="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden">
+        {% if vehicle.image_filename %}
+        <div class="h-40 bg-gray-200">
+            <img src="{{ url_for('api.uploaded_file', filename=vehicle.image_filename) }}"
+                 alt="{{ vehicle.name }}"
+                 class="w-full h-full object-cover">
+        </div>
+        {% else %}
+        <div class="h-40 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
+            {% if vehicle.vehicle_type == 'car' %}
+            <!-- Car icon -->
+            <svg class="h-20 w-20 text-primary-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 17a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 15V9a2 2 0 012-2h1l1.5-3h7L17 7h1a2 2 0 012 2v6M4 15h1m14 0h1M10 15h4"/>
+            </svg>
+            {% elif vehicle.vehicle_type == 'van' %}
+            <!-- Van/Truck icon -->
+            <svg class="h-20 w-20 text-primary-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 15V7a2 2 0 012-2h8v10M4 15h2m12 0h2m-2 0V9l3 3v3h-3M10 15h4"/>
+            </svg>
+            {% elif vehicle.vehicle_type == 'motorbike' %}
+            <!-- Motorcycle icon -->
+            <svg class="h-20 w-20 text-primary-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="5" cy="16" r="3"/>
+                <circle cx="19" cy="16" r="3"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13h4l2-4h4l1 4h3M9 9l2-3h2"/>
+            </svg>
+            {% else %}
+            <!-- Scooter icon -->
+            <svg class="h-20 w-20 text-primary-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="6" cy="17" r="2.5"/>
+                <circle cx="18" cy="17" r="2.5"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 14.5V10a1 1 0 011-1h5v5.5M15.5 14.5h-3.5M18 14.5L16 9h-3v3"/>
+            </svg>
+            {% endif %}
+        </div>
+        {% endif %}
+        <div class="p-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ vehicle.name }}</h3>
+                {% if not vehicle.is_active %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-800">{{ _('Inactive') }}</span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ vehicle.make or '' }} {{ vehicle.model or '' }} {% if vehicle.year %}({{ vehicle.year }}){% endif %}</p>
+            <div class="mt-4 flex items-center justify-between text-sm">
+                <span class="text-gray-500 dark:text-gray-400 capitalize">{{ vehicle.vehicle_type }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ "%.2f"|format(vehicle.get_total_cost()) }} {{ current_user.currency }}</span>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+    </svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">{{ _('No vehicles') }}</h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ _('Get started by adding your first vehicle.') }}</p>
+    <div class="mt-6">
+        <a href="{{ url_for('vehicles.new') }}"
+           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ _('Add Vehicle') }}
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

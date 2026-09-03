@@ -1,0 +1,57 @@
+{
+  "name": "Pitstop Maintenance Tracker",
+  "short_name": "Pitstop",
+  "description": "Track fuel consumption, expenses, and maintenance for your vehicles",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "background_color": "#ffffff",
+  "theme_color": "#0284c7",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/icons/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/static/icons/favicon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Log Fuel",
+      "url": "/fuel/log",
+      "icons": [{ "src": "/static/icons/favicon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Add Expense",
+      "url": "/expenses/add",
+      "icons": [{ "src": "/static/icons/favicon-96x96.png", "sizes": "96x96" }]
+    }
+  ],
+  "categories": ["utilities", "lifestyle"]
+}

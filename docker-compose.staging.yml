@@ -1,0 +1,33 @@
+services:
+  pitstop:
+    image: ghcr.io/austincnunn/pitstop:dev
+    container_name: pitstop-dev
+    restart: unless-stopped
+    ports:
+      - "5051:5151"
+    volumes:
+      - pitstop_staging_data:/app/data
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-staging}
+      - DATABASE_URL=sqlite:////app/data/pitstop.db
+      - UPLOAD_FOLDER=/app/data/uploads
+      - RELEASE_CHANNEL=dev
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Optional: Watchtower to auto-pull new dev images
+  watchtower:
+    image: containrrr/watchtower
+    container_name: pitstop-dev-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_POLL_INTERVAL=300
+      - DOCKER_API_VERSION=1.44
+    command: --interval 300
+
+volumes:
+  pitstop_staging_data:

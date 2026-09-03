@@ -1,0 +1,945 @@
+{% extends "base.html" %}
+{% block title %}{{ vehicle.name }}{% endblock %}
+
+{% block extra_scripts %}
+<!-- Chart.js - Needed for vehicle charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{{ url_for('vehicles.index') }}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300">&larr; {{ _('Back to vehicles') }}</a>
+</div>
+
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden mb-8">
+    <div class="md:flex">
+        {% if vehicle.image_filename %}
+        <div class="md:w-1/3">
+            <img src="{{ url_for('api.uploaded_file', filename=vehicle.image_filename) }}"
+                 alt="{{ vehicle.name }}"
+                 class="w-full h-48 md:h-full object-cover">
+        </div>
+        {% endif %}
+        <div class="p-6 {% if vehicle.image_filename %}md:w-2/3{% endif %}">
+            <div class="flex items-start justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ vehicle.name }}</h1>
+                    <p class="text-gray-500 dark:text-gray-400">{{ vehicle.make or '' }} {{ vehicle.model or '' }} {% if vehicle.year %}({{ vehicle.year }}){% endif %}</p>
+                </div>
+                <div class="flex space-x-2">
+                    <a href="{{ url_for('vehicles.report', vehicle_id=vehicle.id) }}"
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-700"
+                       title="{{ _('Download PDF Report') }}">
+                        <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        PDF
+                    </a>
+                    <a href="{{ url_for('vehicles.edit', vehicle_id=vehicle.id) }}"
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-700">
+                        {{ _('Edit') }}
+                    </a>
+                    <a href="{{ url_for('vehicles.share', vehicle_id=vehicle.id) }}"
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-700">
+                        {{ _('Share') }}
+                    </a>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Type') }}</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white capitalize">{{ vehicle.vehicle_type }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Fuel') }}</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white capitalize">{{ vehicle.fuel_type or _('Not set') }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Registration') }}</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ vehicle.registration or _('Not set') }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Last Odometer') }}</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ "%.0f"|format(vehicle.get_last_odometer(vehicle.get_effective_odometer_unit())) }} {{ vehicle.get_effective_odometer_unit() }}</dd>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Total Fuel Cost') }}</dt>
+        <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{{ "%.2f"|format(stats.total_fuel_cost) }}</dd>
+        <dd class="text-sm text-gray-500 dark:text-gray-400">{{ current_user.currency }}</dd>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Other Expenses') }}</dt>
+        <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{{ "%.2f"|format(stats.total_expense_cost) }}</dd>
+        <dd class="text-sm text-gray-500 dark:text-gray-400">{{ current_user.currency }}</dd>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Total Distance') }}</dt>
+        <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{{ "%.0f"|format(stats.total_distance) }}</dd>
+        <dd class="text-sm text-gray-500 dark:text-gray-400">{{ vehicle.get_effective_odometer_unit() }}</dd>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Avg. Consumption') }}</dt>
+        <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{% if stats.avg_consumption %}{{ "%.1f"|format(stats.avg_consumption) }}{% else %}-{% endif %}</dd>
+        <dd class="text-sm text-gray-500 dark:text-gray-400">{{ current_user.consumption_unit }}</dd>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="flex flex-wrap gap-3 mb-8">
+    {% if not vehicle.uses_tessie_odometer() %}
+    <a href="{{ url_for('fuel.new', vehicle_id=vehicle.id) }}"
+       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        {{ _('Add Fuel Log') }}
+    </a>
+    {% endif %}
+    {% if vehicle.is_electric() %}
+    <a href="{{ url_for('charging.new', vehicle_id=vehicle.id) }}"
+       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-500 hover:bg-green-600">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        {{ _('Add Charging') }}
+    </a>
+    {% endif %}
+    <a href="{{ url_for('trips.new', vehicle_id=vehicle.id) }}"
+       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-600">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+        </svg>
+        {{ _('Log Trip') }}
+    </a>
+    <a href="{{ url_for('expenses.new', vehicle_id=vehicle.id) }}"
+       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        {{ _('Add Expense') }}
+    </a>
+    <a href="{{ url_for('reminders.new', vehicle_id=vehicle.id) }}"
+       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-500 hover:bg-purple-600">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        {{ _('Add Reminder') }}
+    </a>
+    <a href="{{ url_for('vehicles.parts', vehicle_id=vehicle.id) }}"
+       class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+        </svg>
+        {{ _('Parts') }}
+    </a>
+    <a href="{{ url_for('main.timeline', vehicle_id=vehicle.id) }}"
+       class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        {{ _('Timeline') }}
+    </a>
+</div>
+
+<!-- DVLA Status Section (UK Vehicles) -->
+{% if vehicle.registration and dvla_configured %}
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-8" id="dvla-section">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="flex items-center">
+            <svg class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('DVLA Status') }}</h2>
+        </div>
+        <button onclick="refreshDvlaStatus({{ vehicle.id }})" id="dvla-refresh-btn"
+                class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 dark:bg-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-600">
+            <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            {{ _('Refresh') }}
+        </button>
+    </div>
+    <div class="p-6">
+        {% if vehicle.dvla_last_updated %}
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('MOT Status') }}</dt>
+                <dd class="mt-1">
+                    {% if vehicle.mot_status == 'Valid' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        {{ vehicle.mot_status }}
+                    </span>
+                    {% elif vehicle.mot_status == 'Not valid' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                        {{ vehicle.mot_status }}
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                        {{ vehicle.mot_status or 'Unknown' }}
+                    </span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('MOT Expiry') }}</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                    {% if vehicle.mot_expiry %}
+                    {{ vehicle.mot_expiry|format_date }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Tax Status') }}</dt>
+                <dd class="mt-1">
+                    {% if vehicle.tax_status == 'Taxed' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        {{ vehicle.tax_status }}
+                    </span>
+                    {% elif vehicle.tax_status in ['Untaxed', 'SORN'] %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                        {{ vehicle.tax_status }}
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                        {{ vehicle.tax_status or 'Unknown' }}
+                    </span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Tax Due') }}</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                    {% if vehicle.tax_due %}
+                    {{ vehicle.tax_due|format_date }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </dd>
+            </div>
+        </div>
+        <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+            {{ _('Last updated') }}: {{ vehicle.dvla_last_updated|format_date('long_datetime') }}
+        </p>
+        {% else %}
+        <div class="text-center py-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ _('No DVLA data available for this vehicle.') }}</p>
+            <button onclick="refreshDvlaStatus({{ vehicle.id }})"
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                {{ _('Fetch from DVLA') }}
+            </button>
+        </div>
+        {% endif %}
+        <div id="dvla-error" class="hidden mt-3 p-3 bg-red-50 dark:bg-red-900/30 rounded-md text-sm text-red-600 dark:text-red-400"></div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tessie Status Section (Tesla Vehicles) -->
+{% if vehicle.tessie_enabled and vehicle.tessie_vin and tessie_configured %}
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-8" id="tessie-section">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="flex items-center">
+            <svg class="h-5 w-5 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Tessie Status') }}</h2>
+            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                {{ _('Live') }}
+            </span>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="importTessieCharges({{ vehicle.id }})" id="tessie-import-btn"
+                    class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-600">
+                <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                {{ _('Import Charges') }}
+            </button>
+            <button onclick="refreshTessieStatus({{ vehicle.id }})" id="tessie-refresh-btn"
+                    class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-600">
+                <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                {{ _('Refresh') }}
+            </button>
+        </div>
+    </div>
+    <div class="p-6">
+        {% if vehicle.tessie_last_updated %}
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Odometer') }}</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                    {% if vehicle.tessie_last_odometer %}
+                    {% if vehicle.get_effective_odometer_unit() == 'mi' %}
+                    {{ "%.0f"|format(vehicle.tessie_last_odometer * 0.621371) }} mi
+                    {% else %}
+                    {{ "%.0f"|format(vehicle.tessie_last_odometer) }} km
+                    {% endif %}
+                    {% else %}
+                    -
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Battery Level') }}</dt>
+                <dd class="mt-1">
+                    {% if vehicle.tessie_battery_level is not none %}
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full {% if vehicle.tessie_battery_level > 50 %}bg-green-500{% elif vehicle.tessie_battery_level > 20 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                                 style="width: {{ vehicle.tessie_battery_level }}%"></div>
+                        </div>
+                        <span class="text-sm text-gray-900 dark:text-white">{{ vehicle.tessie_battery_level }}%</span>
+                    </div>
+                    {% else %}
+                    <span class="text-sm text-gray-500 dark:text-gray-400">-</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Est. Range') }}</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                    {% if vehicle.tessie_battery_range %}
+                    {% if vehicle.get_effective_odometer_unit() == 'mi' %}
+                    {{ "%.0f"|format(vehicle.tessie_battery_range * 0.621371) }} mi
+                    {% else %}
+                    {{ "%.0f"|format(vehicle.tessie_battery_range) }} km
+                    {% endif %}
+                    {% else %}
+                    -
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('VIN') }}</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-white font-mono">{{ vehicle.tessie_vin }}</dd>
+            </div>
+        </div>
+        <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+            {{ _('Last updated') }}: {{ vehicle.tessie_last_updated|format_date('long_datetime') }}
+        </p>
+        {% else %}
+        <div class="text-center py-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ _('No Tessie data available for this vehicle yet.') }}</p>
+            <button onclick="refreshTessieStatus({{ vehicle.id }})"
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                {{ _('Fetch from Tessie') }}
+            </button>
+        </div>
+        {% endif %}
+        <div id="tessie-error" class="hidden mt-3 p-3 bg-red-50 dark:bg-red-900/30 rounded-md text-sm text-red-600 dark:text-red-400"></div>
+    </div>
+</div>
+{% endif %}
+
+{% if not vehicle.is_active %}
+<div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
+    <div class="flex">
+        <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+        </svg>
+        <p class="ml-3 text-sm text-amber-700">{{ _('This vehicle is archived. It won\'t appear in regular lists or calculations.') }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Reminders Section -->
+{% if reminders %}
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-8">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="flex items-center">
+            <svg class="h-5 w-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Upcoming Reminders') }}</h2>
+        </div>
+        <a href="{{ url_for('reminders.index') }}?vehicle={{ vehicle.id }}" class="text-sm text-primary-600 hover:text-primary-500">{{ _('View all') }}</a>
+    </div>
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for reminder in reminders[:5] %}
+        <li class="px-6 py-4 hover:bg-gray-50 dark:bg-gray-700">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <form method="POST" action="{{ url_for('reminders.complete', reminder_id=reminder.id) }}?return_to=vehicle">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:border-green-500 hover:bg-green-50 flex items-center justify-center transition-colors"
+                                title="{{ _('Mark as completed') }}">
+                        </button>
+                    </form>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ reminder.title }}</p>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                                         {% if reminder.reminder_type == 'mot' %}bg-purple-100 text-purple-800
+                                         {% elif reminder.reminder_type == 'service' %}bg-blue-100 text-blue-800
+                                         {% elif reminder.reminder_type == 'insurance' %}bg-green-100 text-green-800
+                                         {% elif reminder.reminder_type == 'tax' %}bg-yellow-100 text-yellow-800
+                                         {% else %}bg-gray-100 dark:bg-gray-600 text-gray-800{% endif %}">
+                                {{ dict(reminder_types)[reminder.reminder_type] if reminder.reminder_type in dict(reminder_types) else reminder.reminder_type|capitalize }}
+                            </span>
+                        </div>
+                        {% if reminder.description %}
+                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate max-w-md">{{ reminder.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <p class="text-sm {% if reminder.is_overdue() %}text-red-600 font-medium{% elif reminder.is_upcoming(7) %}text-amber-600{% else %}text-gray-900 dark:text-white{% endif %}">
+                            {{ reminder.due_date|format_date }}
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {% if reminder.is_overdue() %}
+                            {{ _('%(days)s days overdue', days=reminder.days_until_due()|abs) }}
+                            {% elif reminder.days_until_due() == 0 %}
+                            {{ _('Due today') }}
+                            {% elif reminder.days_until_due() == 1 %}
+                            {{ _('Due tomorrow') }}
+                            {% else %}
+                            {{ _('In %(days)s days', days=reminder.days_until_due()) }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <a href="{{ url_for('reminders.edit', reminder_id=reminder.id) }}"
+                       class="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400" title="Edit">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% if reminders|length > 5 %}
+    <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+        <a href="{{ url_for('reminders.index') }}?vehicle={{ vehicle.id }}" class="text-sm text-primary-600 hover:text-primary-500">
+            View {{ reminders|length - 5 }} more reminder{{ 's' if reminders|length - 5 > 1 else '' }}
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Specifications & Notes -->
+{% if specs or vehicle.notes %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    {% if specs %}
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Specifications') }}</h2>
+        </div>
+        <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for spec in specs %}
+            <div class="px-6 py-3 flex justify-between">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ spec.label }}</dt>
+                <dd class="text-sm text-gray-900 dark:text-white">{{ spec.value }}</dd>
+            </div>
+            {% endfor %}
+        </dl>
+    </div>
+    {% endif %}
+
+    {% if vehicle.notes %}
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('General Notes') }}</h2>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ vehicle.notes }}</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Rich Notes -->
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-8">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="flex items-center">
+            <svg class="h-5 w-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Vehicle Notes') }}</h2>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ vehicle.vehicle_notes.count() }} {{ _('total') }}</span>
+            <a href="{{ url_for('notes.new', vehicle_id=vehicle.id) }}"
+               class="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                {{ _('Add Note') }}
+            </a>
+            <a href="{{ url_for('notes.vehicle_notes', vehicle_id=vehicle.id) }}" class="text-sm text-primary-600 hover:text-primary-500">{{ _('View all') }}</a>
+        </div>
+    </div>
+    {% if recent_notes %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for note in recent_notes %}
+        <li class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        {% if note.is_pinned %}
+                        <svg class="h-4 w-4 text-primary-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.699-1.699a1 1 0 111.414 1.414l-1.699 1.699L18 10l-1.582 3.954 1.699 1.699a1 1 0 11-1.414 1.414l-1.699-1.699L10 18l-3.954-1.582-1.699 1.699a1 1 0 11-1.414-1.414l1.699-1.699L2 10l1.582-3.954-1.699-1.699a1 1 0 111.414-1.414l1.699 1.699L9 4.323V3a1 1 0 011-1z"/>
+                        </svg>
+                        {% endif %}
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ note.title }}</p>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ note.updated_at|format_date('long_datetime') }}</p>
+                </div>
+                <a href="{{ url_for('notes.edit', note_id=note.id) }}"
+                   class="ml-4 p-1.5 text-gray-400 hover:text-primary-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600"
+                   title="{{ _('Edit') }}">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% if vehicle.vehicle_notes.count() > 3 %}
+    <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+        <a href="{{ url_for('notes.vehicle_notes', vehicle_id=vehicle.id) }}" class="text-sm text-primary-600 hover:text-primary-500">
+            {{ _('View all %(count)s notes', count=vehicle.vehicle_notes.count()) }}
+        </a>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="px-6 py-8 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ _('No rich notes yet. Add one to keep track of important details.') }}</p>
+        <a href="{{ url_for('notes.new', vehicle_id=vehicle.id) }}"
+           class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ _('Add Note') }}
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Parts & Consumables -->
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-8">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="flex items-center">
+            <svg class="h-5 w-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+            </svg>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Parts & Consumables') }}</h2>
+        </div>
+        <a href="{{ url_for('vehicles.parts', vehicle_id=vehicle.id) }}" class="text-sm text-primary-600 hover:text-primary-500">{{ _('View all') }}</a>
+    </div>
+    {% if parts %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for part in parts[:6] %}
+        <li class="px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                        {{ dict(part_types)[part.part_type] if part.part_type in dict(part_types) else part.part_type }}
+                    </span>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ part.name }}</span>
+                    {% if part.specification %}
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ part.specification }}</span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2 ml-4 flex-shrink-0">
+                    {% if part.quantity and part.unit %}
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ part.quantity }} {{ part.unit }}</span>
+                    {% endif %}
+                    {% if part.supplier_url %}
+                    <a href="{{ part.supplier_url }}" target="_blank" rel="noopener noreferrer"
+                       class="p-1 text-gray-400 hover:text-primary-500" title="Buy">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% if parts|length > 6 %}
+    <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+        <a href="{{ url_for('vehicles.parts', vehicle_id=vehicle.id) }}" class="text-sm text-primary-600 hover:text-primary-500">
+            View {{ parts|length - 6 }} more part{{ 's' if parts|length - 6 > 1 else '' }}
+        </a>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="px-6 py-8 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ _('No parts added yet.') }}</p>
+        <a href="{{ url_for('vehicles.new_part', vehicle_id=vehicle.id) }}"
+           class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ _('Add Part') }}
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Consumption Chart -->
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-8">
+    <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">{{ _('Fuel Consumption Trend') }}</h2>
+    <div style="position: relative; height: 300px;">
+        <canvas id="consumptionChart"></canvas>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Fuel Logs') }}</h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ stats.fuel_logs_count }} total</span>
+        </div>
+        {% if recent_logs %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for log in recent_logs %}
+            <li class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ log.date|format_date }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            {{ "%.0f"|format(log.odometer) }} {{ vehicle.get_effective_odometer_unit() }} &middot;
+                            {{ "%.1f"|format(log.volume or 0) }} {{ current_user.volume_unit }}
+                            {% if log.is_full_tank %}<span class="text-green-600">{{ _('(Full)') }}</span>{% endif %}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ "%.2f"|format(log.total_cost or 0) }} {{ current_user.currency }}</p>
+                            {% set consumption = log.get_consumption(current_user.consumption_unit) %}
+                            {% if consumption %}
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ "%.1f"|format(consumption) }} {{ current_user.consumption_unit }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <a href="{{ url_for('fuel.edit', log_id=log.id) }}" class="p-1.5 text-gray-400 hover:text-primary-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600" title="Edit">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </a>
+                            <form method="POST" action="{{ url_for('fuel.delete', log_id=log.id) }}" class="inline" onsubmit="return confirm('{{ _('Delete this fuel log?') }}');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600" title="Delete">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ _('No fuel logs yet.') }}</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Expenses') }}</h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ stats.expenses_count }} total</span>
+        </div>
+        {% if recent_expenses %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for expense in recent_expenses %}
+            <li class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <div class="flex items-center justify-between">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ expense.description }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            {{ expense.date|format_date }} &middot;
+                            <span class="capitalize">{{ expense.category }}</span>
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 ml-4">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">{{ "%.2f"|format(expense.cost) }} {{ current_user.currency }}</p>
+                        <div class="flex items-center gap-1">
+                            <a href="{{ url_for('expenses.edit', expense_id=expense.id) }}" class="p-1.5 text-gray-400 hover:text-primary-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600" title="Edit">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </a>
+                            <form method="POST" action="{{ url_for('expenses.delete', expense_id=expense.id) }}" class="inline" onsubmit="return confirm('{{ _('Delete this expense?') }}');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-gray-100 dark:hover:bg-gray-600" title="Delete">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ _('No expenses yet.') }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Danger Zone -->
+<div class="mt-8 bg-white dark:bg-gray-800 shadow rounded-lg border border-red-200">
+    <div class="px-6 py-4 border-b border-red-200">
+        <h3 class="text-lg font-medium text-red-600">{{ _('Danger Zone') }}</h3>
+    </div>
+    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        <!-- Archive/Restore -->
+        <div class="px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    {% if vehicle.is_active %}
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">{{ _('Archive this vehicle') }}</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Archived vehicles won\'t appear in regular lists or calculations. You can restore them later.') }}</p>
+                    {% else %}
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">{{ _('Restore this vehicle') }}</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Restore this vehicle to make it active again and include it in calculations.') }}</p>
+                    {% endif %}
+                </div>
+                {% if vehicle.is_active %}
+                <form method="POST" action="{{ url_for('vehicles.archive', vehicle_id=vehicle.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit"
+                            class="px-4 py-2 border border-amber-300 rounded-md text-sm font-medium text-amber-700 bg-white dark:bg-gray-800 hover:bg-amber-50">
+                        {{ _('Archive Vehicle') }}
+                    </button>
+                </form>
+                {% else %}
+                <form method="POST" action="{{ url_for('vehicles.unarchive', vehicle_id=vehicle.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit"
+                            class="px-4 py-2 border border-green-300 rounded-md text-sm font-medium text-green-700 bg-white dark:bg-gray-800 hover:bg-green-50">
+                        {{ _('Restore Vehicle') }}
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Delete -->
+        <div class="px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">{{ _('Delete this vehicle') }}</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Once you delete a vehicle, there is no going back. This will also delete all associated fuel logs and expenses.') }}</p>
+                </div>
+                <form method="POST" action="{{ url_for('vehicles.delete', vehicle_id=vehicle.id) }}"
+                      onsubmit="return confirm('{{ _('Are you sure you want to delete this vehicle? This action cannot be undone.') }}');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit"
+                            class="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white dark:bg-gray-800 hover:bg-red-50">
+                        {{ _('Delete Vehicle') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/vehicles/{{ vehicle.id }}/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.consumption && data.consumption.length > 0) {
+                const ctx = document.getElementById('consumptionChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.consumption.map(d => d.date),
+                        datasets: [{
+                            label: 'Consumption ({{ current_user.consumption_unit }})',
+                            data: data.consumption.map(d => d.consumption),
+                            borderColor: 'rgb(14, 165, 233)',
+                            backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('consumptionChart').parentElement.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Not enough data to show consumption trend. Add more fuel logs with full tank fills.</p>';
+            }
+        });
+});
+
+function refreshDvlaStatus(vehicleId) {
+    const btn = document.getElementById('dvla-refresh-btn');
+    const errorDiv = document.getElementById('dvla-error');
+
+    // Hide any previous errors
+    errorDiv.classList.add('hidden');
+
+    // Show loading state
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Loading...';
+    }
+
+    fetch('/api/vehicles/' + vehicleId + '/dvla-refresh', {
+        method: 'POST'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the page to show updated data
+                location.reload();
+            } else {
+                // Show error
+                errorDiv.textContent = data.error || 'Failed to refresh DVLA status';
+                errorDiv.classList.remove('hidden');
+
+                // Reset button
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refresh';
+                }
+            }
+        })
+        .catch(err => {
+            errorDiv.textContent = 'Error connecting to server';
+            errorDiv.classList.remove('hidden');
+            console.error(err);
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refresh';
+            }
+        });
+}
+
+function importTessieCharges(vehicleId) {
+    const btn = document.getElementById('tessie-import-btn');
+    const errorDiv = document.getElementById('tessie-error');
+
+    // Hide any previous errors
+    errorDiv.classList.add('hidden');
+
+    // Show loading state
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Importing...';
+    }
+
+    fetch('/api/vehicles/' + vehicleId + '/tessie-import-charges', {
+        method: 'POST'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message and reload
+                alert(data.message);
+                location.reload();
+            } else {
+                // Show error
+                errorDiv.textContent = data.error || 'Failed to import charges';
+                errorDiv.classList.remove('hidden');
+
+                // Reset button
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>Import Charges';
+                }
+            }
+        })
+        .catch(err => {
+            errorDiv.textContent = 'Error connecting to server';
+            errorDiv.classList.remove('hidden');
+            console.error(err);
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>Import Charges';
+            }
+        });
+}
+
+function refreshTessieStatus(vehicleId) {
+    const btn = document.getElementById('tessie-refresh-btn');
+    const errorDiv = document.getElementById('tessie-error');
+
+    // Hide any previous errors
+    errorDiv.classList.add('hidden');
+
+    // Show loading state
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Loading...';
+    }
+
+    fetch('/api/vehicles/' + vehicleId + '/tessie-refresh', {
+        method: 'POST'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the page to show updated data
+                location.reload();
+            } else {
+                // Show error
+                errorDiv.textContent = data.error || 'Failed to refresh Tessie status';
+                errorDiv.classList.remove('hidden');
+
+                // Reset button
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refresh';
+                }
+            }
+        })
+        .catch(err => {
+            errorDiv.textContent = 'Error connecting to server';
+            errorDiv.classList.remove('hidden');
+            console.error(err);
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refresh';
+            }
+        });
+}
+</script>
+{% endblock %}

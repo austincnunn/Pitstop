@@ -1,0 +1,12 @@
+services:
+  pitstop:
+    image: ghcr.io/austincnunn/pitstop:latest
+    container_name: pitstop
+    restart: unless-stopped
+    ports:
+      - "5151:5151"
+    volumes:
+      - /user/appdata/pitstop:/app/data
+    environment:
+      - DATABASE_URL=sqlite:////app/data/pitstop.db
+      - UPLOAD_FOLDER=/app/data/uploads

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ vehicle.name }} - Vehicle Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 9pt;
+                color: #666;
+            }
+        }
+
+        body {
+            font-family: "Atkinson Hyperlegible", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 24pt;
+            margin: 0 0 5pt 0;
+            color: #1a1a1a;
+        }
+
+        h2 {
+            font-size: 14pt;
+            margin: 20pt 0 10pt 0;
+            padding-bottom: 5pt;
+            border-bottom: 2pt solid #0284c7;
+            color: #1a1a1a;
+        }
+
+        h3 {
+            font-size: 11pt;
+            margin: 15pt 0 8pt 0;
+            color: #444;
+        }
+
+        .header {
+            margin-bottom: 20pt;
+            padding-bottom: 15pt;
+            border-bottom: 1pt solid #ddd;
+        }
+
+        .header-brand {
+            font-size: 10pt;
+            color: #666;
+            margin-bottom: 5pt;
+        }
+
+        .vehicle-title {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+
+        .vehicle-subtitle {
+            font-size: 12pt;
+            color: #666;
+            margin-top: 3pt;
+        }
+
+        .meta {
+            font-size: 9pt;
+            color: #888;
+            margin-top: 10pt;
+        }
+
+        .stats-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10pt;
+            margin: 15pt 0;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 120pt;
+            background: #f8fafc;
+            border: 1pt solid #e2e8f0;
+            border-radius: 6pt;
+            padding: 12pt;
+        }
+
+        .stat-label {
+            font-size: 9pt;
+            color: #64748b;
+            margin-bottom: 3pt;
+        }
+
+        .stat-value {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .stat-unit {
+            font-size: 9pt;
+            color: #64748b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10pt 0;
+            font-size: 9pt;
+        }
+
+        th {
+            background: #f1f5f9;
+            border: 1pt solid #e2e8f0;
+            padding: 8pt 6pt;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        td {
+            border: 1pt solid #e2e8f0;
+            padding: 6pt;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .specs-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8pt;
+        }
+
+        .spec-item {
+            flex: 0 0 48%;
+            display: flex;
+            justify-content: space-between;
+            padding: 6pt 0;
+            border-bottom: 1pt solid #e2e8f0;
+        }
+
+        .spec-label {
+            color: #64748b;
+        }
+
+        .spec-value {
+            font-weight: 500;
+        }
+
+        .notes {
+            background: #fffbeb;
+            border: 1pt solid #fde68a;
+            border-radius: 4pt;
+            padding: 10pt;
+            margin: 10pt 0;
+        }
+
+        .notes-title {
+            font-weight: 600;
+            margin-bottom: 5pt;
+            color: #92400e;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .footer {
+            margin-top: 30pt;
+            padding-top: 15pt;
+            border-top: 1pt solid #ddd;
+            font-size: 8pt;
+            color: #888;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-brand">{{ branding.app_name or 'Pitstop' }} Vehicle Report</div>
+        <div class="vehicle-title">{{ vehicle.name }}</div>
+        <div class="vehicle-subtitle">
+            {{ vehicle.make or '' }} {{ vehicle.model or '' }}
+            {% if vehicle.year %}({{ vehicle.year }}){% endif %}
+            {% if vehicle.registration %}&bull; {{ vehicle.registration }}{% endif %}
+        </div>
+        <div class="meta">
+            Generated on {{ generated_at|format_date('long_datetime') }} for {{ user.username }}
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <h2>Summary</h2>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Cost</div>
+            <div class="stat-value">{{ "%.2f"|format(stats.total_cost) }}</div>
+            <div class="stat-unit">{{ user.currency }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Fuel Cost</div>
+            <div class="stat-value">{{ "%.2f"|format(stats.total_fuel_cost) }}</div>
+            <div class="stat-unit">{{ user.currency }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Other Expenses</div>
+            <div class="stat-value">{{ "%.2f"|format(stats.total_expense_cost) }}</div>
+            <div class="stat-unit">{{ user.currency }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Distance</div>
+            <div class="stat-value">{{ "%.0f"|format(stats.total_distance) }}</div>
+            <div class="stat-unit">{{ user.distance_unit }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Avg. Consumption</div>
+            <div class="stat-value">{% if stats.avg_consumption %}{{ "%.1f"|format(stats.avg_consumption) }}{% else %}-{% endif %}</div>
+            <div class="stat-unit">{{ user.consumption_unit }}</div>
+        </div>
+    </div>
+
+    <!-- Vehicle Details -->
+    <h2>Vehicle Details</h2>
+    <table>
+        <tr>
+            <th style="width: 30%">Property</th>
+            <th>Value</th>
+        </tr>
+        <tr>
+            <td>Type</td>
+            <td style="text-transform: capitalize;">{{ vehicle.vehicle_type }}</td>
+        </tr>
+        <tr>
+            <td>Make</td>
+            <td>{{ vehicle.make or '-' }}</td>
+        </tr>
+        <tr>
+            <td>Model</td>
+            <td>{{ vehicle.model or '-' }}</td>
+        </tr>
+        <tr>
+            <td>Year</td>
+            <td>{{ vehicle.year or '-' }}</td>
+        </tr>
+        <tr>
+            <td>Registration</td>
+            <td>{{ vehicle.registration or '-' }}</td>
+        </tr>
+        <tr>
+            <td>VIN</td>
+            <td>{{ vehicle.vin or '-' }}</td>
+        </tr>
+        <tr>
+            <td>Fuel Type</td>
+            <td style="text-transform: capitalize;">{{ vehicle.fuel_type or '-' }}</td>
+        </tr>
+        {% if vehicle.tank_capacity %}
+        <tr>
+            <td>Tank Capacity</td>
+            {% if user.volume_unit == 'us_gal' %}
+                <td>{{ (vehicle.tank_capacity / 3.78541) | round(2) }} us_gal</td>
+            {% elif user.volume_unit == 'gal' %}
+                <td>{{ (vehicle.tank_capacity / 4.54609) | round(2) }} gal</td>
+            {% else %}
+                <td>{{ vehicle.tank_capacity }} L</td>
+            {% endif %}
+        </tr>
+        {% endif %}
+    </table>
+
+    {% if specs %}
+    <h3>Specifications</h3>
+    <table>
+        <tr>
+            <th style="width: 40%">Specification</th>
+            <th>Value</th>
+        </tr>
+        {% for spec in specs %}
+        <tr>
+            <td>{{ spec.label }}</td>
+            <td>{{ spec.value }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if vehicle.notes %}
+    <div class="notes">
+        <div class="notes-title">Notes</div>
+        {{ vehicle.notes }}
+    </div>
+    {% endif %}
+
+    <!-- Fuel Logs -->
+    {% if fuel_logs %}
+    <div class="page-break"></div>
+    <h2>Fuel Logs ({{ stats.fuel_logs_count }} records)</h2>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th class="text-right">Odometer</th>
+            <th class="text-right">Volume</th>
+            <th class="text-right">Price/Unit</th>
+            <th class="text-right">Total Cost</th>
+            <th class="text-center">Full</th>
+            <th>Station</th>
+        </tr>
+        {% for log in fuel_logs %}
+        <tr>
+            <td>{{ log.date|format_date }}</td>
+            <td class="text-right">{{ "%.0f"|format(log.odometer) }} {{ user.distance_unit }}</td>
+            <td class="text-right">{% if log.volume %}{{ "%.2f"|format(log.volume) }} {{ user.volume_unit }}{% else %}-{% endif %}</td>
+            <td class="text-right">{% if log.price_per_unit %}{{ "%.3f"|format(log.price_per_unit) }}{% else %}-{% endif %}</td>
+            <td class="text-right">{% if log.total_cost %}{{ "%.2f"|format(log.total_cost) }} {{ user.currency }}{% else %}-{% endif %}</td>
+            <td class="text-center">{% if log.is_full_tank %}Yes{% else %}No{% endif %}</td>
+            <td>{{ log.station or '-' }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <!-- Expenses -->
+    {% if expenses %}
+    <div class="page-break"></div>
+    <h2>Expenses ({{ stats.expenses_count }} records)</h2>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th class="text-right">Cost</th>
+            <th>Vendor</th>
+        </tr>
+        {% for expense in expenses %}
+        <tr>
+            <td>{{ expense.date|format_date }}</td>
+            <td style="text-transform: capitalize;">{{ expense.category }}</td>
+            <td>{{ expense.description }}</td>
+            <td class="text-right">{{ "%.2f"|format(expense.cost) }} {{ user.currency }}</td>
+            <td>{{ expense.vendor or '-' }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer">
+        Generated by {{ branding.app_name or 'Pitstop' }} &bull; {{ branding.app_tagline or 'Maintenance Tracker' }}
+    </div>
+</body>
+</html>

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Backups{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Page header -->
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Automated Backups</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Backups are saved to <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded text-xs">{{ backup_dir }}</code>
+        </p>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="space-y-2">
+        {% for category, message in messages %}
+        <div class="rounded-md p-4 {% if category == 'success' %}bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800{% elif category == 'error' %}bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800{% else %}bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800{% endif %}">
+            <p class="text-sm {% if category == 'success' %}text-green-800 dark:text-green-200{% elif category == 'error' %}text-red-800 dark:text-red-200{% else %}text-blue-800 dark:text-blue-200{% endif %}">{{ message }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Schedule settings -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">Schedule Settings</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Configure when automated backups run.</p>
+        </div>
+        <form method="POST" action="{{ url_for('admin.save_backup_settings') }}" class="p-6 space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Enabled toggle -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <label for="backup_enabled" class="text-sm font-medium text-gray-900 dark:text-white">Enable automated backups</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Run backups automatically on the chosen schedule.</p>
+                </div>
+                <input type="checkbox" name="backup_enabled" id="backup_enabled"
+                       {% if settings.backup_enabled %}checked{% endif %}
+                       class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <!-- Frequency -->
+                <div>
+                    <label for="backup_frequency" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Frequency</label>
+                    <select name="backup_frequency" id="backup_frequency"
+                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                        <option value="daily"   {% if settings.backup_frequency == 'daily'   %}selected{% endif %}>Daily</option>
+                        <option value="weekly"  {% if settings.backup_frequency == 'weekly'  %}selected{% endif %}>Weekly (every Monday)</option>
+                        <option value="monthly" {% if settings.backup_frequency == 'monthly' %}selected{% endif %}>Monthly (1st of month)</option>
+                    </select>
+                </div>
+
+                <!-- Hour -->
+                <div>
+                    <label for="backup_hour" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Run at (UTC hour)</label>
+                    <select name="backup_hour" id="backup_hour"
+                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                        {% for h in range(24) %}
+                        <option value="{{ h }}" {% if settings.backup_hour == h %}selected{% endif %}>{{ '%02d:00 UTC' % h }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Retention -->
+                <div>
+                    <label for="backup_retention" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Keep last N backups</label>
+                    <input type="number" name="backup_retention" id="backup_retention"
+                           value="{{ settings.backup_retention }}" min="1" max="365"
+                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="submit"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md shadow-sm">
+                    Save Settings
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Run backup now -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">Run Backup Now</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create a backup immediately and save it to the backups folder.</p>
+        </div>
+        <form method="POST" action="{{ url_for('admin.run_backup_now') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                Run Now
+            </button>
+        </form>
+    </div>
+
+    <!-- Existing backups -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-medium text-gray-900 dark:text-white">Stored Backups</h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ backups|length }} backup{{ 's' if backups|length != 1 else '' }} on disk.</p>
+            </div>
+        </div>
+
+        {% if backups %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for backup in backups %}
+            <li class="px-6 py-4 flex items-center justify-between gap-4">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ backup.filename }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ backup.created_at.strftime('%Y-%m-%d %H:%M') }} &middot;
+                        {% set mb = (backup.size / 1048576) | round(1) %}
+                        {% if mb < 0.1 %}{{ (backup.size / 1024) | round(1) }} KB{% else %}{{ mb }} MB{% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <a href="{{ url_for('admin.download_backup', filename=backup.filename) }}"
+                       class="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        Download
+                    </a>
+                    <form method="POST" action="{{ url_for('admin.delete_backup', filename=backup.filename) }}"
+                          onsubmit="return confirm('Delete this backup?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit"
+                                class="px-3 py-1.5 text-xs font-medium rounded-md border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            No backups stored yet. Click <strong>Run Now</strong> to create the first one.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Restore info -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white">Restore from Backup</h2>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            To restore data from a backup ZIP, use the <strong>Restore from Backup</strong> option in
+            <a href="{{ url_for('auth.settings') }}#section-data" class="text-primary-600 hover:underline">Settings &rarr; Data &amp; Integrations</a>.
+            You can restore into any user account on any Pitstop instance.
+        </p>
+    </div>
+
+</div>
+{% endblock %}

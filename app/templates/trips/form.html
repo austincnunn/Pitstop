@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{% if trip %}Edit Trip{% else %}Log Trip{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ url_for('trips.index') }}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; {{ _('Back to trips') }}</a>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mt-2">{% if trip %}{{ _('Edit Trip') }}{% else %}{{ _('Log Trip') }}{% endif %}</h1>
+    </div>
+
+    <form method="POST" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <label for="vehicle_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Vehicle') }} *</label>
+                    <select name="vehicle_id" id="vehicle_id" required
+                            onchange="updateVehicleOdometer(this.value)"
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        {% for vehicle in vehicles %}
+                        <option value="{{ vehicle.id }}"
+                                {% if (trip and trip.vehicle_id == vehicle.id) or (selected_vehicle_id == vehicle.id) %}selected{% endif %}
+                                data-last-odometer="{{ vehicle.get_last_odometer(current_user.distance_unit) }}"
+                                data-uses-tessie="{{ 'true' if vehicle.uses_tessie_odometer() else 'false' }}"
+                                data-tessie-odometer="{% if vehicle.tessie_last_odometer %}{% if current_user.distance_unit == 'mi' %}{{ (vehicle.tessie_last_odometer * 0.621371)|round|int }}{% else %}{{ vehicle.tessie_last_odometer|round|int }}{% endif %}{% endif %}">
+                            {{ vehicle.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        {{ _('Last odometer') }}: <span id="last-odometer">{{ last_odometer }}</span> {{ current_user.distance_unit }}
+                        <span id="tessie-odometer-badge" class="hidden ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            From Tessie
+                        </span>
+                    </p>
+                </div>
+
+                <div>
+                    <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Date') }} *</label>
+                    <input type="text" name="date" id="date" required data-datepicker data-default-today
+                           value="{{ trip.date.strftime('%Y-%m-%d') if trip else '' }}"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                </div>
+
+                <div>
+                    <label for="purpose" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Purpose') }} *</label>
+                    <select name="purpose" id="purpose" required
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        {% for value, label in purposes %}
+                        <option value="{{ value }}" {% if trip and trip.purpose == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="start_odometer" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Start Odometer') }} ({{ current_user.distance_unit }}) *</label>
+                    <input type="number" name="start_odometer" id="start_odometer" required step="0.1"
+                           value="{{ trip.start_odometer if trip else '' }}"
+                           onchange="calculateDistance()"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                </div>
+
+                <div>
+                    <label for="end_odometer" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('End Odometer') }} ({{ current_user.distance_unit }}) *</label>
+                    <input type="number" name="end_odometer" id="end_odometer" required step="0.1"
+                           value="{{ trip.end_odometer if trip else '' }}"
+                           onchange="calculateDistance()"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ _('Distance') }}: <span id="trip-distance">0</span> {{ current_user.distance_unit }}</p>
+                </div>
+
+                <div>
+                    <label for="start_location" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Start Location') }}</label>
+                    <input type="text" name="start_location" id="start_location"
+                           value="{{ trip.start_location if trip else '' }}"
+                           placeholder="{{ _('e.g., Home, Office') }}"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                </div>
+
+                <div>
+                    <label for="end_location" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('End Location') }}</label>
+                    <input type="text" name="end_location" id="end_location"
+                           value="{{ trip.end_location if trip else '' }}"
+                           placeholder="{{ _('e.g., Client Site, Airport') }}"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Description') }}</label>
+                    <input type="text" name="description" id="description"
+                           value="{{ trip.description if trip else '' }}"
+                           placeholder="{{ _('e.g., Client meeting, Site visit') }}"
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Notes') }}</label>
+                    <textarea name="notes" id="notes" rows="2"
+                              class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ trip.notes if trip else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-3">
+            <a href="{{ url_for('trips.index') }}"
+               class="px-4 py-2 border border-gray-300 dark:border-gray-500 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                {{ _('Cancel') }}
+            </a>
+            <button type="submit"
+                    class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                {% if trip %}{{ _('Save Changes') }}{% else %}{{ _('Log Trip') }}{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function updateVehicleOdometer(vehicleId) {
+    const select = document.getElementById('vehicle_id');
+    const selectedOption = select.options[select.selectedIndex];
+    const tessieBadge = document.getElementById('tessie-odometer-badge');
+
+    const usesTessie = selectedOption.getAttribute('data-uses-tessie') === 'true';
+    const tessieOdometer = selectedOption.getAttribute('data-tessie-odometer');
+    const lastOdometer = selectedOption.getAttribute('data-last-odometer');
+
+    // Update last odometer display
+    document.getElementById('last-odometer').textContent = lastOdometer || 0;
+
+    // Show/hide Tessie badge
+    if (usesTessie && tessieOdometer) {
+        tessieBadge.classList.remove('hidden');
+    } else {
+        tessieBadge.classList.add('hidden');
+    }
+
+    // Pre-fill start odometer if empty
+    const startOdometer = document.getElementById('start_odometer');
+    if (!startOdometer.value) {
+        startOdometer.value = lastOdometer || '';
+    }
+}
+
+function calculateDistance() {
+    const start = parseFloat(document.getElementById('start_odometer').value) || 0;
+    const end = parseFloat(document.getElementById('end_odometer').value) || 0;
+    const distance = end - start;
+    document.getElementById('trip-distance').textContent = distance > 0 ? distance.toFixed(1) : '0';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize distance calculation
+    calculateDistance();
+
+    // Initialize vehicle odometer
+    const vehicleSelect = document.getElementById('vehicle_id');
+    updateVehicleOdometer(vehicleSelect.value);
+});
+</script>
+{% endblock %}
