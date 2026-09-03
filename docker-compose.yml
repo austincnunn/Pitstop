@@ -19,7 +19,7 @@ services:
     container_name: pitstop-postgres
     restart: unless-stopped
     volumes:
-      - /user/appdata/pitstop-postgres:/var/lib/postgresql/data
+      - /user/appdata/pitstop-postgres:/var/lib/postgresql
     environment:
       - POSTGRES_DB=pitstop
       - POSTGRES_USER=pitstop
