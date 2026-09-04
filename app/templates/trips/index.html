@@ -29,11 +29,11 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Total Distance') }}</dt>
-        <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ "%.1f"|format(total_distance) }} {{ current_user.distance_unit }}</dd>
+        <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ total_distance|format_distance(current_user) }}</dd>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Business Distance') }}</dt>
-        <dd class="mt-1 text-2xl font-semibold text-green-600 dark:text-green-400">{{ "%.1f"|format(business_distance) }} {{ current_user.distance_unit }}</dd>
+        <dd class="mt-1 text-2xl font-semibold text-green-600 dark:text-green-400">{{ business_distance|format_distance(current_user) }}</dd>
     </div>
 </div>
 
@@ -110,7 +110,7 @@
                 </div>
                 <div class="ml-4 flex items-center gap-4">
                     <div class="text-right">
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ "%.1f"|format(trip.distance) }} {{ current_user.distance_unit }}</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ trip.distance|format_distance(current_user) }}</p>
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ "%.0f"|format(trip.start_odometer) }} &rarr; {{ "%.0f"|format(trip.end_odometer) }}</p>
                     </div>
                     <div class="flex items-center gap-2">

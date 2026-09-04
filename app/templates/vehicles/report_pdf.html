@@ -223,13 +223,15 @@
         </div>
         <div class="stat-card">
             <div class="stat-label">Total Distance</div>
-            <div class="stat-value">{{ "%.0f"|format(stats.total_distance) }}</div>
-            <div class="stat-unit">{{ user.distance_unit }}</div>
+            {% set dist = stats.total_distance|format_distance(user, vehicle.get_effective_odometer_unit()) %}
+            <div class="stat-value">{{ dist.split(' ')[0] }}</div>
+            <div class="stat-unit">{{ dist.split(' ', 1)[1] }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Avg. Consumption</div>
-            <div class="stat-value">{% if stats.avg_consumption %}{{ "%.1f"|format(stats.avg_consumption) }}{% else %}-{% endif %}</div>
-            <div class="stat-unit">{{ user.consumption_unit }}</div>
+            {% set cons = stats.avg_consumption|format_consumption(user) %}
+            <div class="stat-value">{{ cons.split(' ')[0] if stats.avg_consumption else '-' }}</div>
+            <div class="stat-unit">{{ cons.split(' ', 1)[1] if stats.avg_consumption else '' }}</div>
         </div>
     </div>
 
@@ -272,12 +274,13 @@
         <tr>
             <td>Tank Capacity</td>
             {% if user.volume_unit == 'us_gal' %}
-                <td>{{ (vehicle.tank_capacity / 3.78541) | round(2) }} us_gal</td>
+                {% set tank_val = vehicle.tank_capacity / 3.78541 %}
             {% elif user.volume_unit == 'gal' %}
-                <td>{{ (vehicle.tank_capacity / 4.54609) | round(2) }} gal</td>
+                {% set tank_val = vehicle.tank_capacity / 4.54609 %}
             {% else %}
-                <td>{{ vehicle.tank_capacity }} L</td>
+                {% set tank_val = vehicle.tank_capacity %}
             {% endif %}
+            <td>{{ tank_val|format_volume(user) }}</td>
         </tr>
         {% endif %}
     </table>
@@ -322,8 +325,8 @@
         {% for log in fuel_logs %}
         <tr>
             <td>{{ log.date|format_date }}</td>
-            <td class="text-right">{{ "%.0f"|format(log.odometer) }} {{ user.distance_unit }}</td>
-            <td class="text-right">{% if log.volume %}{{ "%.2f"|format(log.volume) }} {{ user.volume_unit }}{% else %}-{% endif %}</td>
+            <td class="text-right">{{ log.odometer|format_distance(user, vehicle.get_effective_odometer_unit()) }}</td>
+            <td class="text-right">{% if log.volume %}{{ log.volume|format_volume(user) }}{% else %}-{% endif %}</td>
             <td class="text-right">{% if log.price_per_unit %}{{ "%.3f"|format(log.price_per_unit) }}{% else %}-{% endif %}</td>
             <td class="text-right">{% if log.total_cost %}{{ "%.2f"|format(log.total_cost) }} {{ user.currency }}{% else %}-{% endif %}</td>
             <td class="text-center">{% if log.is_full_tank %}Yes{% else %}No{% endif %}</td>

@@ -5,6 +5,7 @@ from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFProtect
 from flask_babel import Babel, gettext as _
 from config import Config
+from app import units
 import os
 import secrets
 
@@ -100,6 +101,7 @@ def _run_schema_migrations(app):
             ('show_widget_vehicles', 'BOOLEAN DEFAULT TRUE'),
             ('show_widget_recent_fuel', 'BOOLEAN DEFAULT TRUE'),
             ('show_widget_recent_expenses', 'BOOLEAN DEFAULT TRUE'),
+            ('unit_system', "VARCHAR(20) DEFAULT 'imperial'"),
         ],
         'charging_sessions': [
             ('tessie_charge_id', 'VARCHAR(50)'),
@@ -223,6 +225,31 @@ def create_app(config_class=Config):
         formats = DATE_FORMATS.get(user_format, DATE_FORMATS['DD/MM/YYYY'])
         fmt = formats.get(style, formats['default'])
         return value.strftime(fmt)
+
+    @app.template_filter('format_distance')
+    def format_distance_filter(value, user, unit=None):
+        if value is None:
+            return '-'
+        unit = unit or user.distance_unit
+        if user.unit_system == 'british' and unit == 'mi':
+            return f"{units.miles_to_furlongs(value):,.1f} furlongs"
+        return f"{value:,.1f} {unit}"
+
+    @app.template_filter('format_volume')
+    def format_volume_filter(value, user):
+        if value is None:
+            return '-'
+        if user.unit_system == 'british':
+            return f"{units.uk_gallons_to_firkins(value):,.2f} firkins"
+        return f"{value:,.2f} {user.volume_unit}"
+
+    @app.template_filter('format_consumption')
+    def format_consumption_filter(value, user):
+        if value is None:
+            return '-'
+        if user.unit_system == 'british':
+            return f"{units.mpg_uk_to_rods_per_hogshead(value):,.0f} rods/hogshead"
+        return f"{value:,.2f} {user.consumption_unit}"
 
     from app.routes import main, auth, vehicles, fuel, expenses, api, reminders, maintenance, documents, stations, recurring, homeassistant, calendar, trips, charging, admin, supplies, notes
     app.register_blueprint(main.bp)

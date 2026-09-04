@@ -61,7 +61,7 @@
                     {% endif %}
                     {% if schedule.next_due_odometer %}
                     <p class="text-xs text-gray-500 dark:text-gray-400">
-                        @ {{ "{:,.0f}".format(schedule.next_due_odometer) }} {{ current_user.distance_unit }}
+                        @ {{ schedule.next_due_odometer|format_distance(current_user) }}
                     </p>
                     {% endif %}
                     {% if schedule.estimated_cost %}

@@ -40,9 +40,9 @@
                             {{ log.vehicle.name }}
                         </a>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ "%.0f"|format(log.odometer) }} {{ log.vehicle.get_effective_odometer_unit() }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ log.odometer|format_distance(current_user, log.vehicle.get_effective_odometer_unit()) }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {{ "%.1f"|format(log.volume or 0) }} {{ current_user.volume_unit }}
+                        {{ (log.volume or 0)|format_volume(current_user) }}
                         {% if log.is_full_tank %}
                         <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 ml-1">Full</span>
                         {% endif %}
@@ -53,7 +53,7 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ "%.2f"|format(log.total_cost or 0) }} {{ current_user.currency }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {% set consumption = log.get_consumption(current_user.consumption_unit) %}
-                        {% if consumption %}{{ "%.1f"|format(consumption) }} {{ current_user.consumption_unit }}{% else %}-{% endif %}
+                        {% if consumption %}{{ consumption|format_consumption(current_user) }}{% else %}-{% endif %}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <a href="{{ url_for('fuel.edit', log_id=log.id) }}" class="text-primary-600 hover:text-primary-900 mr-3">Edit</a>

@@ -301,6 +301,9 @@ def vehicle_stats(vehicle_id):
     for log in logs:
         consumption = log.get_consumption(current_user.consumption_unit)
         if consumption:
+            if current_user.unit_system == 'british':
+                from app.units import mpg_uk_to_rods_per_hogshead
+                consumption = mpg_uk_to_rods_per_hogshead(consumption)
             consumption_data.append({
                 'date': log.date.isoformat(),
                 'consumption': round(consumption, 2),

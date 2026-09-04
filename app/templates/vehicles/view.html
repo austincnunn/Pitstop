@@ -61,7 +61,7 @@
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Last Odometer') }}</dt>
-                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ "%.0f"|format(vehicle.get_last_odometer(vehicle.get_effective_odometer_unit())) }} {{ vehicle.get_effective_odometer_unit() }}</dd>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ vehicle.get_last_odometer(vehicle.get_effective_odometer_unit())|format_distance(current_user, vehicle.get_effective_odometer_unit()) }}</dd>
                 </div>
             </div>
         </div>
@@ -82,13 +82,15 @@
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Total Distance') }}</dt>
-        <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{{ "%.0f"|format(stats.total_distance) }}</dd>
-        <dd class="text-sm text-gray-500 dark:text-gray-400">{{ vehicle.get_effective_odometer_unit() }}</dd>
+        {% set dist = stats.total_distance|format_distance(current_user, vehicle.get_effective_odometer_unit()) %}
+        <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{{ dist.split(' ')[0] }}</dd>
+        <dd class="text-sm text-gray-500 dark:text-gray-400">{{ dist.split(' ', 1)[1] }}</dd>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Avg. Consumption') }}</dt>
-        <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{% if stats.avg_consumption %}{{ "%.1f"|format(stats.avg_consumption) }}{% else %}-{% endif %}</dd>
-        <dd class="text-sm text-gray-500 dark:text-gray-400">{{ current_user.consumption_unit }}</dd>
+        {% set cons = stats.avg_consumption|format_consumption(current_user) %}
+        <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{{ cons.split(' ')[0] if stats.avg_consumption else '-' }}</dd>
+        <dd class="text-sm text-gray-500 dark:text-gray-400">{{ cons.split(' ', 1)[1] if stats.avg_consumption else '' }}</dd>
     </div>
 </div>
 
@@ -284,11 +286,8 @@
                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Odometer') }}</dt>
                 <dd class="mt-1 text-sm text-gray-900 dark:text-white">
                     {% if vehicle.tessie_last_odometer %}
-                    {% if vehicle.get_effective_odometer_unit() == 'mi' %}
-                    {{ "%.0f"|format(vehicle.tessie_last_odometer * 0.621371) }} mi
-                    {% else %}
-                    {{ "%.0f"|format(vehicle.tessie_last_odometer) }} km
-                    {% endif %}
+                    {% set odo_unit = vehicle.get_effective_odometer_unit() %}
+                    {{ (vehicle.tessie_last_odometer * 0.621371 if odo_unit == 'mi' else vehicle.tessie_last_odometer)|format_distance(current_user, odo_unit) }}
                     {% else %}
                     -
                     {% endif %}
@@ -314,11 +313,8 @@
                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Est. Range') }}</dt>
                 <dd class="mt-1 text-sm text-gray-900 dark:text-white">
                     {% if vehicle.tessie_battery_range %}
-                    {% if vehicle.get_effective_odometer_unit() == 'mi' %}
-                    {{ "%.0f"|format(vehicle.tessie_battery_range * 0.621371) }} mi
-                    {% else %}
-                    {{ "%.0f"|format(vehicle.tessie_battery_range) }} km
-                    {% endif %}
+                    {% set range_unit = vehicle.get_effective_odometer_unit() %}
+                    {{ (vehicle.tessie_battery_range * 0.621371 if range_unit == 'mi' else vehicle.tessie_battery_range)|format_distance(current_user, range_unit) }}
                     {% else %}
                     -
                     {% endif %}
@@ -625,8 +621,8 @@
                     <div>
                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ log.date|format_date }}</p>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                            {{ "%.0f"|format(log.odometer) }} {{ vehicle.get_effective_odometer_unit() }} &middot;
-                            {{ "%.1f"|format(log.volume or 0) }} {{ current_user.volume_unit }}
+                            {{ log.odometer|format_distance(current_user, vehicle.get_effective_odometer_unit()) }} &middot;
+                            {{ (log.volume or 0)|format_volume(current_user) }}
                             {% if log.is_full_tank %}<span class="text-green-600">{{ _('(Full)') }}</span>{% endif %}
                         </p>
                     </div>
@@ -635,7 +631,7 @@
                             <p class="text-sm font-medium text-gray-900 dark:text-white">{{ "%.2f"|format(log.total_cost or 0) }} {{ current_user.currency }}</p>
                             {% set consumption = log.get_consumption(current_user.consumption_unit) %}
                             {% if consumption %}
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ "%.1f"|format(consumption) }} {{ current_user.consumption_unit }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ consumption|format_consumption(current_user) }}</p>
                             {% endif %}
                         </div>
                         <div class="flex items-center gap-1">
@@ -777,7 +773,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     data: {
                         labels: data.consumption.map(d => d.date),
                         datasets: [{
-                            label: 'Consumption ({{ current_user.consumption_unit }})',
+                            label: 'Consumption ({{ 'rods/hogshead' if current_user.unit_system == 'british' else current_user.consumption_unit }})',
                             data: data.consumption.map(d => d.consumption),
                             borderColor: 'rgb(14, 165, 233)',
                             backgroundColor: 'rgba(14, 165, 233, 0.1)',

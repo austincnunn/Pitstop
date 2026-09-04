@@ -65,7 +65,7 @@
                                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ event.description }}</p>
                                 {% endif %}
                                 {% if event.odometer %}
-                                <p class="text-xs text-gray-400 dark:text-gray-500">{{ "%.0f"|format(event.odometer) }} {{ current_user.distance_unit }}</p>
+                                <p class="text-xs text-gray-400 dark:text-gray-500">{{ event.odometer|format_distance(current_user) }}</p>
                                 {% endif %}
                             </div>
                             <div class="whitespace-nowrap text-right">

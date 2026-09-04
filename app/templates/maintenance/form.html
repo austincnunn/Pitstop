@@ -65,7 +65,8 @@
             <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">{{ _('Service Interval') }}</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ _('Set how often this maintenance should be performed. You can set distance, time, or both.') }}</p>
 
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                {% if current_user.distance_unit == 'km' %}
                 <div>
                     <label for="interval_km" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Every (km)') }}</label>
                     <input type="number" name="interval_km" id="interval_km"
@@ -73,6 +74,10 @@
                            placeholder="{{ _('e.g., 10000') }}"
                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                 </div>
+                {% if schedule and schedule.interval_miles %}
+                <input type="hidden" name="interval_miles" value="{{ schedule.interval_miles }}">
+                {% endif %}
+                {% else %}
                 <div>
                     <label for="interval_miles" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Every (miles)') }}</label>
                     <input type="number" name="interval_miles" id="interval_miles"
@@ -80,6 +85,10 @@
                            placeholder="{{ _('e.g., 6000') }}"
                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                 </div>
+                {% if schedule and schedule.interval_km %}
+                <input type="hidden" name="interval_km" value="{{ schedule.interval_km }}">
+                {% endif %}
+                {% endif %}
                 <div>
                     <label for="interval_months" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Every (months)') }}</label>
                     <input type="number" name="interval_months" id="interval_months"

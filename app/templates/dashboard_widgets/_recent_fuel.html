@@ -9,7 +9,7 @@
         <div class="flex justify-between">
             <div>
                 <p class="text-sm font-medium text-gray-900 dark:text-white">{{ log.vehicle.name }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ log.date|format_date }} - {{ "%.1f"|format(log.volume or 0) }} {{ current_user.volume_unit }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ log.date|format_date }} - {{ (log.volume or 0)|format_volume(current_user) }}</p>
             </div>
             <p class="text-sm font-medium text-gray-900 dark:text-white">{{ "%.2f"|format(log.total_cost or 0) }} {{ current_user.currency }}</p>
         </div>

@@ -209,9 +209,7 @@ class TestSettingsRoute:
 
     def test_post_settings_updates_preferences(self, auth_client, test_user, app):
         response = auth_client.post('/auth/settings', data={
-            'distance_unit': 'mi',
-            'volume_unit': 'gal',
-            'consumption_unit': 'mpg',
+            'unit_system': 'imperial',
             'currency': 'USD',
             'language': 'en',
             'date_format': 'MM/DD/YYYY',
@@ -220,14 +218,15 @@ class TestSettingsRoute:
         assert b'Settings updated successfully' in response.data
         with app.app_context():
             user = User.query.filter_by(username='testuser').first()
+            assert user.unit_system == 'imperial'
             assert user.distance_unit == 'mi'
+            assert user.volume_unit == 'us_gal'
+            assert user.consumption_unit == 'mpg_us'
             assert user.currency == 'USD'
 
-    def test_post_settings_updates_currency(self, auth_client, test_user, app):
+    def test_post_settings_metric_derives_units(self, auth_client, test_user, app):
         response = auth_client.post('/auth/settings', data={
-            'distance_unit': 'km',
-            'volume_unit': 'L',
-            'consumption_unit': 'L/100km',
+            'unit_system': 'metric',
             'currency': 'EUR',
             'language': 'en',
             'date_format': 'DD/MM/YYYY',
@@ -235,13 +234,30 @@ class TestSettingsRoute:
         assert response.status_code == 200
         with app.app_context():
             user = User.query.filter_by(username='testuser').first()
+            assert user.unit_system == 'metric'
+            assert user.distance_unit == 'km'
+            assert user.volume_unit == 'L'
+            assert user.consumption_unit == 'L/100km'
             assert user.currency == 'EUR'
+
+    def test_post_settings_british_derives_units(self, auth_client, test_user, app):
+        response = auth_client.post('/auth/settings', data={
+            'unit_system': 'british',
+            'currency': 'GBP',
+            'language': 'en',
+            'date_format': 'DD/MM/YYYY',
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        with app.app_context():
+            user = User.query.filter_by(username='testuser').first()
+            assert user.unit_system == 'british'
+            assert user.distance_unit == 'mi'
+            assert user.volume_unit == 'gal'
+            assert user.consumption_unit == 'mpg'
 
     def test_post_settings_password_mismatch(self, auth_client):
         response = auth_client.post('/auth/settings', data={
-            'distance_unit': 'km',
-            'volume_unit': 'L',
-            'consumption_unit': 'L/100km',
+            'unit_system': 'metric',
             'currency': 'USD',
             'language': 'en',
             'date_format': 'DD/MM/YYYY',

@@ -123,32 +123,16 @@
                                 </div>
 
                                 <div>
-                                    <label for="distance_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Distance') }}</label>
-                                    <select name="distance_unit" id="distance_unit"
+                                    <label for="unit_system" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Unit System') }}</label>
+                                    <select name="unit_system" id="unit_system"
                                             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                                        <option value="km" {% if current_user.distance_unit == 'km' %}selected{% endif %}>Kilometers (km)</option>
-                                        <option value="mi" {% if current_user.distance_unit == 'mi' %}selected{% endif %}>Miles (mi)</option>
+                                        <option value="imperial" {% if current_user.unit_system == 'imperial' %}selected{% endif %}>{{ _('Imperial (miles, US gallons, MPG)') }}</option>
+                                        <option value="metric" {% if current_user.unit_system == 'metric' %}selected{% endif %}>{{ _('Metric (km, liters, L/100km)') }}</option>
+                                        <option value="british" {% if current_user.unit_system == 'british' %}selected{% endif %}>{{ _('British (just for fun \U0001F1EC\U0001F1E7)') }}</option>
                                     </select>
-                                </div>
-
-                                <div>
-                                    <label for="volume_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Volume') }}</label>
-                                    <select name="volume_unit" id="volume_unit"
-                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                                        <option value="L" {% if current_user.volume_unit == 'L' %}selected{% endif %}>Liters (L)</option>
-                                        <option value="gal" {% if current_user.volume_unit == 'gal' %}selected{% endif %}>UK Gallons (gal)</option>
-                                        <option value="us_gal" {% if current_user.volume_unit == 'us_gal' %}selected{% endif %}>US Gallons (gal)</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label for="consumption_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Fuel Consumption') }}</label>
-                                    <select name="consumption_unit" id="consumption_unit"
-                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
-                                        <option value="L/100km" {% if current_user.consumption_unit == 'L/100km' %}selected{% endif %}>L/100km</option>
-                                        <option value="mpg" {% if current_user.consumption_unit == 'mpg' %}selected{% endif %}>MPG (UK)</option>
-                                        <option value="mpg_us" {% if current_user.consumption_unit == 'mpg_us' %}selected{% endif %}>MPG (US)</option>
-                                    </select>
+                                    {% if current_user.unit_system == 'british' %}
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Distances in furlongs, volumes in firkins, fuel economy in rods per hogshead. Fuel logs are still entered in miles and UK gallons — only the displayed numbers get silly.') }}</p>
+                                    {% endif %}
                                 </div>
 
                                 {% set known_currencies = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'INR', 'JPY', 'CHF', 'NZD', 'SEK', 'NOK', 'DKK', 'PLN', 'BRL', 'MXN', 'ZAR'] %}

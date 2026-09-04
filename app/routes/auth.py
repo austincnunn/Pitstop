@@ -246,9 +246,20 @@ def logout():
 def settings():
     if request.method == 'POST':
         current_user.language = request.form.get('language', 'en')
-        current_user.distance_unit = request.form.get('distance_unit', 'mi')
-        current_user.volume_unit = request.form.get('volume_unit', 'us_gal')
-        current_user.consumption_unit = request.form.get('consumption_unit', 'mpg_us')
+        unit_system = request.form.get('unit_system', 'imperial')
+        current_user.unit_system = unit_system
+        if unit_system == 'metric':
+            current_user.distance_unit = 'km'
+            current_user.volume_unit = 'L'
+            current_user.consumption_unit = 'L/100km'
+        elif unit_system == 'british':
+            current_user.distance_unit = 'mi'
+            current_user.volume_unit = 'gal'
+            current_user.consumption_unit = 'mpg'
+        else:
+            current_user.distance_unit = 'mi'
+            current_user.volume_unit = 'us_gal'
+            current_user.consumption_unit = 'mpg_us'
         currency = (request.form.get('currency', 'USD') or 'USD').strip()
         if currency == 'custom':
             custom_currency = (request.form.get('custom_currency') or '').strip()

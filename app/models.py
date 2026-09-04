@@ -67,6 +67,7 @@ class User(UserMixin, db.Model):
 
     # User preferences
     language = db.Column(db.String(10), default='en')  # en, de, fr, es, etc.
+    unit_system = db.Column(db.String(20), default='imperial')  # imperial, metric, british
     distance_unit = db.Column(db.String(10), default='mi')  # km, mi
     volume_unit = db.Column(db.String(10), default='us_gal')  # L, gal, us_gal
     consumption_unit = db.Column(db.String(10), default='mpg_us')  # L/100km, mpg, mpg_us
