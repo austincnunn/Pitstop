@@ -207,8 +207,6 @@ def create_app(config_class=Config):
             'PRIMARY_COLOR': branding.get('primary_color', '#0284c7'),
             'TAILWIND_ASSET_URL': app.config.get('TAILWIND_ASSET_URL', '/static/vendor/tailwindcss.js'),
             'TAILWIND_CDN_URL': app.config.get('TAILWIND_CDN_URL', 'https://cdn.tailwindcss.com'),
-            'HTMX_ASSET_URL': app.config.get('HTMX_ASSET_URL', '/static/vendor/htmx.min.js'),
-            'HTMX_CDN_URL': app.config.get('HTMX_CDN_URL', 'https://unpkg.com/htmx.org@1.9.10'),
             'FLATPICKR_JS_ASSET_URL': app.config.get('FLATPICKR_JS_ASSET_URL', '/static/vendor/flatpickr.min.js'),
             'FLATPICKR_JS_CDN_URL': app.config.get('FLATPICKR_JS_CDN_URL', 'https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js'),
             'FLATPICKR_CSS_ASSET_URL': app.config.get('FLATPICKR_CSS_ASSET_URL', '/static/vendor/flatpickr.min.css'),

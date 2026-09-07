@@ -22,7 +22,7 @@ Pitstop Maintenance Tracker (short name "Pitstop") is a self-hosted vehicle mana
 
 - **Backend**: Flask (Python 3.12)
 - **Database**: SQLite with SQLAlchemy ORM, Flask-Migrate (Alembic) for migrations
-- **Frontend**: Jinja2 templates with Tailwind CSS, htmx, Flatpickr
+- **Frontend**: Jinja2 templates with Tailwind CSS, Flatpickr
 - **i18n**: Flask-Babel (`app/translations/`, `babel.cfg`) — English, German, Spanish, French, and others
 - **Charts**: Chart.js
 - **PDF Generation**: WeasyPrint

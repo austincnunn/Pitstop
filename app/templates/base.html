@@ -129,20 +129,6 @@
         };
     </script>
     <script src="{{ TAILWIND_ASSET_URL }}" onerror="window.__loadTailwindFallback()"></script>
-    <!-- HTMX - Non-critical, deferred, local with CDN fallback -->
-    <script>
-        window.__loadHtmxFallback = function() {
-            if (window.__htmxFallbackLoaded) {
-                return;
-            }
-            window.__htmxFallbackLoaded = true;
-            var fallbackScript = document.createElement('script');
-            fallbackScript.src = '{{ HTMX_CDN_URL }}';
-            fallbackScript.defer = true;
-            document.head.appendChild(fallbackScript);
-        };
-    </script>
-    <script src="{{ HTMX_ASSET_URL }}" defer onerror="window.__loadHtmxFallback()"></script>
     <!-- Flatpickr date picker - CSS with CDN fallback -->
     <link rel="stylesheet" href="{{ FLATPICKR_CSS_ASSET_URL }}" onerror="this.onerror=null;this.href='{{ FLATPICKR_CSS_CDN_URL }}';">
     <!-- Flatpickr JS with CDN fallback -->
@@ -489,6 +475,22 @@
         }
     });
 
+    // Sync the track color of "peer" checkbox toggle switches (Allow Registration,
+    // Quick Entry, Enable Reminders, etc). The Tailwind Play CDN's JIT compiler
+    // doesn't reliably generate `peer-checked:bg-primary-*` rules for our
+    // dynamically-configured brand color, so the toggle's checked/unchecked state
+    // is otherwise invisible even though the underlying checkbox is correct.
+    function syncPeerToggle(checkbox) {
+        const track = checkbox.nextElementSibling;
+        if (track) {
+            track.style.backgroundColor = checkbox.checked ? 'var(--primary-600)' : '';
+        }
+    }
+    document.querySelectorAll('input.peer[type="checkbox"]').forEach(function(checkbox) {
+        syncPeerToggle(checkbox);
+        checkbox.addEventListener('change', function() { syncPeerToggle(checkbox); });
+    });
+
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
@@ -526,7 +528,7 @@
         // Also run on DOMContentLoaded for safety
         document.addEventListener('DOMContentLoaded', injectCSRFTokens);
         
-        // Watch for dynamically added forms (HTMX, etc.)
+        // Watch for dynamically added forms
         if (window.MutationObserver) {
             new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
@@ -534,16 +536,11 @@
                         injectCSRFTokens();
                     }
                 });
-            }).observe(document.body, { 
-                childList: true, 
-                subtree: true 
+            }).observe(document.body, {
+                childList: true,
+                subtree: true
             });
         }
-
-        // Also handle HTMX requests
-        document.addEventListener('htmx:configRequest', function(event) {
-            event.detail.headers['X-CSRFToken'] = csrfToken;
-        });
     })();
 
     // Flatpickr date picker initialization

@@ -125,7 +125,6 @@ python run.py
 | `ADMIN_PASSWORD` | Password for the default admin account | Auto-generated |
 | `TAILWIND_ASSET_URL` | Local Tailwind Play CDN JS path | `/static/vendor/tailwindcss.js` |
 | `TAILWIND_CDN_URL` | Tailwind CDN fallback URL | `https://cdn.tailwindcss.com` |
-| `HTMX_CDN_URL` | HTMX CDN URL | `https://unpkg.com/htmx.org@1.9.10` |
 
 `SECRET_KEY` is automatically generated and stored on first startup — you do not need to set it manually. If you want a fixed key (e.g. to keep sessions alive across container restarts), you can provide it as an environment variable.
 
@@ -289,7 +288,7 @@ Translations were generated with AI assistance and may contain inaccuracies. If 
 
 - **Backend**: Python / Flask
 - **Database**: SQLite (easily swappable)
-- **Frontend**: Tailwind CSS, HTMX, Chart.js
+- **Frontend**: Tailwind CSS, Chart.js
 - **Server**: Gunicorn
 - **Notifications**: SMTP, ntfy, Pushover, Webhooks
 - **PDF Generation**: WeasyPrint
