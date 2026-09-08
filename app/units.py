@@ -22,3 +22,17 @@ def uk_gallons_to_firkins(gallons):
 
 def mpg_uk_to_rods_per_hogshead(mpg):
     return mpg * RODS_PER_MILE * UK_GALLONS_PER_HOGSHEAD
+
+
+# Human-readable labels for the internal unit codes stored on User
+# (distance_unit / volume_unit / consumption_unit). Most codes (km, mi, L,
+# gal, L/100km) already read fine as-is; only the Imperial/US codes need
+# cleaning up for display. Codes not listed here are shown unchanged.
+UNIT_DISPLAY_LABELS = {
+    'us_gal': 'gal',
+    'mpg_us': 'MPG',
+}
+
+
+def unit_label(code):
+    return UNIT_DISPLAY_LABELS.get(code, code)

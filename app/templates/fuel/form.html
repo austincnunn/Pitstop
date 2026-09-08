@@ -57,7 +57,7 @@
                 </div>
 
                 <div>
-                    <label for="volume" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Volume ({{ current_user.volume_unit }})</label>
+                    <label for="volume" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Volume ({{ current_user.volume_unit|unit_label }})</label>
                     <input type="number" name="volume" id="volume" step="0.01"
                            value="{{ log.volume if log else '' }}"
                            onchange="calculateTotal()"
@@ -65,7 +65,7 @@
                 </div>
 
                 <div>
-                    <label for="price_per_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Price per {{ current_user.volume_unit }} ({{ current_user.currency }})</label>
+                    <label for="price_per_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Price per {{ current_user.volume_unit|unit_label }} ({{ current_user.currency }})</label>
                     <input type="number" name="price_per_unit" id="price_per_unit" step="0.001"
                            value="{{ log.price_per_unit if log else '' }}"
                            onchange="calculateTotal()"

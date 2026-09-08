@@ -57,7 +57,7 @@
                 <div class="mt-1 relative">
                     <input type="number" name="volume" id="volume" step="0.01"
                            class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-lg py-3 pr-8 focus:border-primary-500 focus:ring-primary-500">
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{{ current_user.volume_unit }}</span>
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{{ current_user.volume_unit|unit_label }}</span>
                 </div>
             </div>
             <div>

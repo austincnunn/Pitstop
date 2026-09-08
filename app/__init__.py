@@ -239,7 +239,7 @@ def create_app(config_class=Config):
             return '-'
         if user.unit_system == 'british':
             return f"{units.uk_gallons_to_firkins(value):,.2f} firkins"
-        return f"{value:,.2f} {user.volume_unit}"
+        return f"{value:,.2f} {units.unit_label(user.volume_unit)}"
 
     @app.template_filter('format_consumption')
     def format_consumption_filter(value, user):
@@ -247,7 +247,11 @@ def create_app(config_class=Config):
             return '-'
         if user.unit_system == 'british':
             return f"{units.mpg_uk_to_rods_per_hogshead(value):,.0f} rods/hogshead"
-        return f"{value:,.2f} {user.consumption_unit}"
+        return f"{value:,.2f} {units.unit_label(user.consumption_unit)}"
+
+    @app.template_filter('unit_label')
+    def unit_label_filter(code):
+        return units.unit_label(code)
 
     from app.routes import main, auth, vehicles, fuel, expenses, api, reminders, maintenance, documents, stations, recurring, homeassistant, calendar, trips, charging, admin, supplies, notes
     app.register_blueprint(main.bp)

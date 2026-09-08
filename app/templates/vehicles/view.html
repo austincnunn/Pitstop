@@ -773,7 +773,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     data: {
                         labels: data.consumption.map(d => d.date),
                         datasets: [{
-                            label: 'Consumption ({{ 'rods/hogshead' if current_user.unit_system == 'british' else current_user.consumption_unit }})',
+                            label: 'Consumption ({{ 'rods/hogshead' if current_user.unit_system == 'british' else current_user.consumption_unit|unit_label }})',
                             data: data.consumption.map(d => d.consumption),
                             borderColor: 'rgb(14, 165, 233)',
                             backgroundColor: 'rgba(14, 165, 233, 0.1)',
