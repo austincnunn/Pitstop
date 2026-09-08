@@ -36,6 +36,7 @@ class TestFuelNew:
             'volume': '45.0',
             'price_per_unit': '1.60',
             'total_cost': '72.0',
+            'fuel_grade': 'premium',
             'is_full_tank': 'on',
         }, follow_redirects=True)
         assert resp.status_code == 200
@@ -46,6 +47,35 @@ class TestFuelNew:
         assert log is not None
         assert log.volume == 45.0
         assert log.user_id == test_user.id
+        assert log.fuel_grade == 'premium'
+
+    def test_create_fuel_log_requires_fuel_grade(self, auth_client, sample_vehicle):
+        resp = auth_client.post('/fuel/new', data={
+            'vehicle_id': str(sample_vehicle.id),
+            'date': '2024-03-01',
+            'odometer': '15000',
+            'volume': '45.0',
+            'price_per_unit': '1.60',
+            'total_cost': '72.0',
+            'is_full_tank': 'on',
+        }, follow_redirects=True)
+        assert resp.status_code == 200
+        assert b'Please select a fuel type' in resp.data
+        log = FuelLog.query.filter_by(vehicle_id=sample_vehicle.id, odometer=15000.0).first()
+        assert log is None
+
+    def test_create_fuel_log_rejects_invalid_fuel_grade(self, auth_client, sample_vehicle):
+        resp = auth_client.post('/fuel/new', data={
+            'vehicle_id': str(sample_vehicle.id),
+            'date': '2024-03-01',
+            'odometer': '15000',
+            'volume': '45.0',
+            'total_cost': '72.0',
+            'fuel_grade': 'rocket_fuel',
+            'is_full_tank': 'on',
+        }, follow_redirects=True)
+        assert resp.status_code == 200
+        assert b'Please select a fuel type' in resp.data
 
     def test_new_redirects_to_vehicles_if_none(self, auth_client):
         # No vehicles exist for this user
@@ -73,12 +103,28 @@ class TestFuelEdit:
             'volume': '42.0',
             'price_per_unit': '1.55',
             'total_cost': '65.1',
+            'fuel_grade': 'diesel',
             'is_full_tank': 'on',
         }, follow_redirects=True)
         assert resp.status_code == 200
         db.session.refresh(sample_fuel_log)
         assert sample_fuel_log.odometer == 10500.0
         assert sample_fuel_log.volume == 42.0
+        assert sample_fuel_log.fuel_grade == 'diesel'
+
+    def test_edit_fuel_log_requires_fuel_grade(self, auth_client, sample_fuel_log):
+        original_odometer = sample_fuel_log.odometer
+        resp = auth_client.post(f'/fuel/{sample_fuel_log.id}/edit', data={
+            'date': '2024-01-15',
+            'odometer': '10500',
+            'volume': '42.0',
+            'total_cost': '65.1',
+            'is_full_tank': 'on',
+        }, follow_redirects=True)
+        assert resp.status_code == 200
+        assert b'Please select a fuel type' in resp.data
+        db.session.refresh(sample_fuel_log)
+        assert sample_fuel_log.odometer == original_odometer
 
 
 class TestFuelDelete:
@@ -110,6 +156,7 @@ class TestFuelQuick:
             'odometer': '20000',
             'volume': '50.0',
             'total_cost': '80.0',
+            'fuel_grade': 'regular',
             'is_full_tank': 'on',
         }, follow_redirects=True)
         assert resp.status_code == 200
@@ -118,3 +165,56 @@ class TestFuelQuick:
             odometer=20000.0
         ).first()
         assert log is not None
+        assert log.fuel_grade == 'regular'
+
+    def test_quick_post_requires_fuel_grade(self, auth_client, sample_vehicle):
+        resp = auth_client.post('/fuel/quick', data={
+            'vehicle_id': str(sample_vehicle.id),
+            'odometer': '20000',
+            'volume': '50.0',
+            'total_cost': '80.0',
+            'is_full_tank': 'on',
+        }, follow_redirects=True)
+        assert resp.status_code == 200
+        assert b'Please select a fuel type' in resp.data
+        log = FuelLog.query.filter_by(vehicle_id=sample_vehicle.id, odometer=20000.0).first()
+        assert log is None
+
+
+class TestFuelGradeVehicleDefault:
+    def test_setting_default_grade_updates_existing_logs(self, auth_client, sample_vehicle, sample_fuel_log):
+        assert sample_fuel_log.fuel_grade != 'e85'
+        resp = auth_client.post(f'/vehicles/{sample_vehicle.id}/edit', data={
+            'name': sample_vehicle.name,
+            'vehicle_type': sample_vehicle.vehicle_type,
+            'fuel_type': sample_vehicle.fuel_type or 'petrol',
+            'default_fuel_grade': 'e85',
+        }, follow_redirects=True)
+        assert resp.status_code == 200
+        db.session.refresh(sample_vehicle)
+        db.session.refresh(sample_fuel_log)
+        assert sample_vehicle.default_fuel_grade == 'e85'
+        assert sample_fuel_log.fuel_grade == 'e85'
+
+    def test_clearing_default_grade_does_not_revert_logs(self, auth_client, sample_vehicle, sample_fuel_log):
+        # Set a default first
+        auth_client.post(f'/vehicles/{sample_vehicle.id}/edit', data={
+            'name': sample_vehicle.name,
+            'vehicle_type': sample_vehicle.vehicle_type,
+            'fuel_type': sample_vehicle.fuel_type or 'petrol',
+            'default_fuel_grade': 'premium',
+        }, follow_redirects=True)
+        db.session.refresh(sample_fuel_log)
+        assert sample_fuel_log.fuel_grade == 'premium'
+
+        # Now clear it
+        auth_client.post(f'/vehicles/{sample_vehicle.id}/edit', data={
+            'name': sample_vehicle.name,
+            'vehicle_type': sample_vehicle.vehicle_type,
+            'fuel_type': sample_vehicle.fuel_type or 'petrol',
+            'default_fuel_grade': '',
+        }, follow_redirects=True)
+        db.session.refresh(sample_vehicle)
+        db.session.refresh(sample_fuel_log)
+        assert sample_vehicle.default_fuel_grade is None
+        assert sample_fuel_log.fuel_grade == 'premium'  # untouched by clearing

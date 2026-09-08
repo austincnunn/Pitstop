@@ -86,6 +86,10 @@ def _run_schema_migrations(app):
             ('tessie_battery_range', 'FLOAT'),
             ('tessie_last_updated', 'TIMESTAMP'),
             ('tracking_unit', "VARCHAR(20) DEFAULT 'mileage'"),
+            ('default_fuel_grade', 'VARCHAR(20)'),
+        ],
+        'fuel_logs': [
+            ('fuel_grade', "VARCHAR(20) DEFAULT 'regular'"),
         ],
         'users': [
             ('date_format', "VARCHAR(20) DEFAULT 'DD/MM/YYYY'"),
@@ -101,6 +105,7 @@ def _run_schema_migrations(app):
             ('show_widget_vehicles', 'BOOLEAN DEFAULT TRUE'),
             ('show_widget_recent_fuel', 'BOOLEAN DEFAULT TRUE'),
             ('show_widget_recent_expenses', 'BOOLEAN DEFAULT TRUE'),
+            ('show_widget_fuel_costs_by_grade', 'BOOLEAN DEFAULT TRUE'),
             ('unit_system', "VARCHAR(20) DEFAULT 'imperial'"),
         ],
         'charging_sessions': [

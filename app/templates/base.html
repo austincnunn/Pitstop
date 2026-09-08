@@ -164,6 +164,16 @@
         html.dark .dark\:border-gray-600 { border-color: #4b5563; }
 
         [x-cloak] { display: none !important; }
+
+        /* Hide native number-input spin arrows app-wide */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
         .text-primary-400 { color: var(--primary-400); }
         .text-primary-500 { color: var(--primary-500); }
         .text-primary-600 { color: var(--primary-600); }

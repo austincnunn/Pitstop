@@ -68,7 +68,8 @@ class TestUserDashboardWidgets:
     def test_default_order_all_visible(self, test_user):
         widgets = test_user.get_dashboard_widgets()
         assert [w['id'] for w in widgets] == [
-            'monthly_spending', 'cheapest_fuel', 'vehicles', 'recent_fuel', 'recent_expenses'
+            'monthly_spending', 'cheapest_fuel', 'vehicles', 'recent_fuel', 'recent_expenses',
+            'fuel_costs_by_grade'
         ]
         assert all(w['visible'] for w in widgets)
 

@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from app import db
-from app.models import Vehicle, FuelLog, Expense, ChargingSession, FuelPriceHistory, FuelStation
+from app.models import Vehicle, FuelLog, Expense, ChargingSession, FuelPriceHistory, FuelStation, FUEL_GRADES
 
 bp = Blueprint('main', __name__)
 
@@ -129,6 +129,25 @@ def dashboard():
             )
         ).order_by(FuelPriceHistory.price_per_unit.asc()).limit(3).all()
 
+    # Fuel costs broken down by fuel type
+    fuel_costs_by_grade = []
+    if vehicle_ids:
+        grade_labels = dict(FUEL_GRADES)
+        grade_totals = db.session.query(
+            FuelLog.fuel_grade, func.sum(FuelLog.total_cost)
+        ).filter(
+            FuelLog.vehicle_id.in_(vehicle_ids)
+        ).group_by(FuelLog.fuel_grade).all()
+
+        fuel_costs_by_grade = sorted(
+            [
+                {'grade': grade, 'label': grade_labels.get(grade, grade), 'total_cost': total or 0}
+                for grade, total in grade_totals if total
+            ],
+            key=lambda g: g['total_cost'],
+            reverse=True
+        )
+
     return render_template('dashboard.html',
                            vehicles=vehicles,
                            total_fuel_cost=total_fuel_cost,
@@ -139,7 +158,8 @@ def dashboard():
                            recent_logs=recent_logs,
                            recent_expenses=recent_expenses,
                            monthly_data=monthly_data,
-                           cheapest_stations=cheapest_stations)
+                           cheapest_stations=cheapest_stations,
+                           fuel_costs_by_grade=fuel_costs_by_grade)
 
 
 def get_monthly_spending(vehicle_ids):

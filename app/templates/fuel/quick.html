@@ -21,6 +21,7 @@
                         data-odometer-unit="{{ vehicle.get_effective_odometer_unit() }}"
                         data-uses-tessie="{{ 'true' if vehicle.uses_tessie_odometer() else 'false' }}"
                         data-tessie-odometer="{% if vehicle.tessie_last_odometer %}{% if vehicle.get_effective_odometer_unit() == 'mi' %}{{ (vehicle.tessie_last_odometer * 0.621371)|round|int }}{% else %}{{ vehicle.tessie_last_odometer|round|int }}{% endif %}{% endif %}"
+                        data-default-fuel-grade="{{ vehicle.default_fuel_grade or '' }}"
                         {% if selected_vehicle_id and selected_vehicle_id|int == vehicle.id %}selected{% endif %}>
                     {{ vehicle.name }}
                 </option>
@@ -55,7 +56,7 @@
             <div>
                 <label for="volume" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Volume') }}</label>
                 <div class="mt-1 relative">
-                    <input type="number" name="volume" id="volume" step="0.01"
+                    <input type="number" name="volume" id="volume" step="0.001"
                            class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-lg py-3 pr-8 focus:border-primary-500 focus:ring-primary-500">
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{{ current_user.volume_unit|unit_label }}</span>
                 </div>
@@ -63,11 +64,23 @@
             <div>
                 <label for="total_cost" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Total Cost') }}</label>
                 <div class="mt-1 relative">
-                    <input type="number" name="total_cost" id="total_cost" step="0.01"
+                    <input type="number" name="total_cost" id="total_cost" step="0.001"
                            class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-lg py-3 pr-12 focus:border-primary-500 focus:ring-primary-500">
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{{ current_user.currency }}</span>
                 </div>
             </div>
+        </div>
+
+        <!-- Fuel Type -->
+        <div>
+            <label for="fuel_grade" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Fuel Type') }} *</label>
+            <select name="fuel_grade" id="fuel_grade" required
+                    class="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-lg py-3 focus:border-primary-500 focus:ring-primary-500">
+                <option value="" disabled selected>{{ _('Select fuel type') }}</option>
+                {% for value, label in fuel_grades %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
         </div>
 
         <!-- Full Tank -->
@@ -124,6 +137,7 @@ function updateVehicleOdometer() {
     const odometerUnit = option.dataset.odometerUnit || '{{ current_user.distance_unit }}';
     const usesTessie = option.dataset.usesTessie === 'true';
     const tessieOdometer = option.dataset.tessieOdometer;
+    const defaultFuelGrade = option.dataset.defaultFuelGrade;
     const hint = document.getElementById('last-odometer-hint');
     const input = document.getElementById('odometer');
     const badge = document.getElementById('tessie-badge');
@@ -131,6 +145,13 @@ function updateVehicleOdometer() {
 
     // Update odometer unit display
     if (unitBadge) unitBadge.textContent = odometerUnit;
+
+    // Auto-select the vehicle's default fuel type, but never clobber an
+    // already-chosen value
+    const fuelGradeSelect = document.getElementById('fuel_grade');
+    if (fuelGradeSelect && !fuelGradeSelect.value && defaultFuelGrade) {
+        fuelGradeSelect.value = defaultFuelGrade;
+    }
 
     if (usesTessie && tessieOdometer) {
         // Show Tessie badge and auto-fill

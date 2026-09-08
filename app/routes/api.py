@@ -17,7 +17,7 @@ from app.models import (
     User, Vehicle, VehicleSpec, FuelLog, Expense, EXPENSE_CATEGORIES,
     Reminder, MaintenanceSchedule, RecurringExpense, FuelStation,
     Document, Trip, ChargingSession, VehiclePart, FuelPriceHistory, Attachment,
-    VehicleNote, TRIP_PURPOSES, CHARGER_TYPES
+    VehicleNote, TRIP_PURPOSES, CHARGER_TYPES, FUEL_GRADES
 )
 from app.services.tessie import TessieService
 from flask_babel import gettext as _
@@ -535,7 +535,7 @@ def api_create_fuel_log(vehicle_id):
     Create a fuel log
 
     Required fields: date, odometer
-    Optional fields: volume, price_per_unit, total_cost, is_full_tank, is_missed, station, notes
+    Optional fields: volume, price_per_unit, total_cost, fuel_grade, is_full_tank, is_missed, station, notes
     """
     user = get_api_user()
     vehicle = Vehicle.query.get_or_404(vehicle_id)
@@ -558,6 +558,10 @@ def api_create_fuel_log(vehicle_id):
     except ValueError:
         return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD', 'code': 'validation_error'}), 400
 
+    fuel_grade = data.get('fuel_grade')
+    if fuel_grade and fuel_grade not in dict(FUEL_GRADES):
+        return jsonify({'error': f"fuel_grade must be one of: {', '.join(dict(FUEL_GRADES))}", 'code': 'validation_error'}), 400
+
     log = FuelLog(
         vehicle_id=vehicle_id,
         user_id=user.id,
@@ -566,6 +570,7 @@ def api_create_fuel_log(vehicle_id):
         volume=float(data['volume']) if data.get('volume') else None,
         price_per_unit=float(data['price_per_unit']) if data.get('price_per_unit') else None,
         total_cost=float(data['total_cost']) if data.get('total_cost') else None,
+        fuel_grade=fuel_grade or 'regular',
         is_full_tank=data.get('is_full_tank', True),
         is_missed=data.get('is_missed', False),
         station=data.get('station'),
@@ -623,6 +628,10 @@ def api_update_fuel_log(log_id):
         log.price_per_unit = float(data['price_per_unit']) if data['price_per_unit'] else None
     if 'total_cost' in data:
         log.total_cost = float(data['total_cost']) if data['total_cost'] else None
+    if 'fuel_grade' in data:
+        if data['fuel_grade'] not in dict(FUEL_GRADES):
+            return jsonify({'error': f"fuel_grade must be one of: {', '.join(dict(FUEL_GRADES))}", 'code': 'validation_error'}), 400
+        log.fuel_grade = data['fuel_grade']
     if 'is_full_tank' in data:
         log.is_full_tank = data['is_full_tank']
     if 'is_missed' in data:
@@ -1169,7 +1178,7 @@ def export_csv():
         writer = csv.writer(fuel_csv)
         writer.writerow([
             'id', 'vehicle_id', 'vehicle_name', 'date', 'odometer',
-            'volume', 'price_per_unit', 'total_cost', 'is_full_tank',
+            'volume', 'price_per_unit', 'total_cost', 'fuel_grade', 'is_full_tank',
             'is_missed', 'station', 'notes', 'created_at'
         ])
         for vehicle in current_user.get_all_vehicles():
@@ -1177,7 +1186,7 @@ def export_csv():
                 writer.writerow([
                     log.id, vehicle.id, vehicle.name, log.date.isoformat(),
                     log.odometer, log.volume, log.price_per_unit, log.total_cost,
-                    log.is_full_tank, log.is_missed, log.station, log.notes,
+                    log.fuel_grade, log.is_full_tank, log.is_missed, log.station, log.notes,
                     log.created_at.isoformat() if log.created_at else ''
                 ])
         zip_file.writestr('fuel_logs.csv', fuel_csv.getvalue())
@@ -1479,6 +1488,7 @@ def export_json():
                 'volume': log.volume,
                 'price_per_unit': log.price_per_unit,
                 'total_cost': log.total_cost,
+                'fuel_grade': log.fuel_grade,
                 'is_full_tank': log.is_full_tank,
                 'is_missed': log.is_missed,
                 'station': log.station,
@@ -1777,6 +1787,7 @@ def export_full_backup():
                 'volume': log.volume,
                 'price_per_unit': log.price_per_unit,
                 'total_cost': log.total_cost,
+                'fuel_grade': log.fuel_grade,
                 'is_full_tank': log.is_full_tank,
                 'is_missed': log.is_missed,
                 'station': log.station,
@@ -2255,6 +2266,7 @@ def _restore_backup_data(data, user, upload_folder):
                 volume=ld.get('volume'),
                 price_per_unit=ld.get('price_per_unit'),
                 total_cost=ld.get('total_cost'),
+                fuel_grade=ld.get('fuel_grade') or 'regular',
                 is_full_tank=ld.get('is_full_tank', True),
                 is_missed=ld.get('is_missed', False),
                 station=ld.get('station'),

@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
-from app.models import Vehicle, FuelLog, Attachment, FuelStation, FuelPriceHistory
+from app.models import Vehicle, FuelLog, Attachment, FuelStation, FuelPriceHistory, FUEL_GRADES
 from app.security import validate_file_upload, secure_filename_with_uuid, validate_positive_number, safe_int, safe_float
 from flask_babel import gettext as _
 from app.services.tessie import TessieService
@@ -43,7 +43,18 @@ def new():
         flash(_('Please add a vehicle first'), 'info')
         return redirect(url_for('vehicles.new'))
 
+    # Get all fuel stations for dropdown (stations are system-wide)
+    stations = FuelStation.query.order_by(
+        FuelStation.is_favorite.desc(),
+        FuelStation.times_used.desc()
+    ).all()
+
     if request.method == 'POST':
+        def rerender():
+            return render_template('fuel/form.html', log=None, vehicles=vehicles,
+                                    stations=stations, fuel_grades=FUEL_GRADES,
+                                    selected_vehicle_id=vehicle_id)
+
         vehicle_id = safe_int(request.form.get('vehicle_id'))
         vehicle = Vehicle.query.get_or_404(vehicle_id)
 
@@ -59,22 +70,27 @@ def new():
         odometer, err = validate_positive_number(request.form.get('odometer'), 'Odometer', max_value=9999999)
         if err:
             flash(err, 'error')
-            return render_template('fuel/new.html', vehicles=vehicles)
+            return rerender()
 
         volume, err = validate_positive_number(request.form.get('volume'), 'Volume', max_value=10000)
         if err:
             flash(err, 'error')
-            return render_template('fuel/new.html', vehicles=vehicles)
+            return rerender()
 
         price_per_unit, err = validate_positive_number(request.form.get('price_per_unit'), 'Price per unit', max_value=1000)
         if err:
             flash(err, 'error')
-            return render_template('fuel/new.html', vehicles=vehicles)
+            return rerender()
 
         total_cost, err = validate_positive_number(request.form.get('total_cost'), 'Total cost', max_value=100000)
         if err:
             flash(err, 'error')
-            return render_template('fuel/new.html', vehicles=vehicles)
+            return rerender()
+
+        fuel_grade = request.form.get('fuel_grade')
+        if fuel_grade not in dict(FUEL_GRADES):
+            flash(_('Please select a fuel type'), 'error')
+            return rerender()
 
         log = FuelLog(
             vehicle_id=vehicle_id,
@@ -84,6 +100,7 @@ def new():
             volume=volume,
             price_per_unit=price_per_unit,
             total_cost=total_cost,
+            fuel_grade=fuel_grade,
             is_full_tank=request.form.get('is_full_tank') == 'on',
             is_missed=request.form.get('is_missed') == 'on',
             station=request.form.get('station'),
@@ -136,15 +153,10 @@ def new():
     # Pre-select vehicle if provided
     selected_vehicle_id = request.args.get('vehicle_id', type=int)
 
-    # Get all fuel stations for dropdown (stations are system-wide)
-    stations = FuelStation.query.order_by(
-        FuelStation.is_favorite.desc(),
-        FuelStation.times_used.desc()
-    ).all()
-
     return render_template('fuel/form.html',
                            log=None,
                            vehicles=vehicles,
+                           fuel_grades=FUEL_GRADES,
                            stations=stations,
                            selected_vehicle_id=selected_vehicle_id)
 
@@ -160,13 +172,27 @@ def edit(log_id):
         flash(_('Access denied'), 'error')
         return redirect(url_for('fuel.index'))
 
+    # Get all fuel stations for dropdown (stations are system-wide)
+    stations = FuelStation.query.order_by(
+        FuelStation.is_favorite.desc(),
+        FuelStation.times_used.desc()
+    ).all()
+
     if request.method == 'POST':
+        fuel_grade = request.form.get('fuel_grade')
+        if fuel_grade not in dict(FUEL_GRADES):
+            flash(_('Please select a fuel type'), 'error')
+            return render_template('fuel/form.html', log=log, vehicles=vehicles,
+                                    stations=stations, fuel_grades=FUEL_GRADES,
+                                    selected_vehicle_id=log.vehicle_id)
+
         date_str = request.form.get('date')
         log.date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else log.date
         log.odometer = float(request.form.get('odometer'))
         log.volume = float(request.form.get('volume')) if request.form.get('volume') else None
         log.price_per_unit = float(request.form.get('price_per_unit')) if request.form.get('price_per_unit') else None
         log.total_cost = float(request.form.get('total_cost')) if request.form.get('total_cost') else None
+        log.fuel_grade = fuel_grade
         log.is_full_tank = request.form.get('is_full_tank') == 'on'
         log.is_missed = request.form.get('is_missed') == 'on'
         log.station = request.form.get('station')
@@ -195,15 +221,10 @@ def edit(log_id):
         flash(_('Fuel log updated successfully'), 'success')
         return redirect(url_for('vehicles.view', vehicle_id=log.vehicle_id))
 
-    # Get all fuel stations for dropdown (stations are system-wide)
-    stations = FuelStation.query.order_by(
-        FuelStation.is_favorite.desc(),
-        FuelStation.times_used.desc()
-    ).all()
-
     return render_template('fuel/form.html',
                            log=log,
                            vehicles=vehicles,
+                           fuel_grades=FUEL_GRADES,
                            stations=stations,
                            selected_vehicle_id=log.vehicle_id)
 
@@ -267,6 +288,13 @@ def quick():
             flash(_('Access denied'), 'error')
             return redirect(url_for('fuel.quick'))
 
+        fuel_grade = request.form.get('fuel_grade')
+        if fuel_grade not in dict(FUEL_GRADES):
+            flash(_('Please select a fuel type'), 'error')
+            return render_template('fuel/quick.html', vehicles=vehicles, stations=stations,
+                                    fuel_grades=FUEL_GRADES, selected_vehicle_id=vehicle_id,
+                                    last_odometer=vehicle.get_last_odometer())
+
         log = FuelLog(
             vehicle_id=vehicle_id,
             user_id=current_user.id,
@@ -274,6 +302,7 @@ def quick():
             odometer=safe_float(request.form.get('odometer')),
             volume=float(request.form.get('volume')) if request.form.get('volume') else None,
             total_cost=float(request.form.get('total_cost')) if request.form.get('total_cost') else None,
+            fuel_grade=fuel_grade,
             is_full_tank=request.form.get('is_full_tank') == 'on',
             station=request.form.get('station'),
         )
@@ -317,5 +346,6 @@ def quick():
     return render_template('fuel/quick.html',
                            vehicles=vehicles,
                            stations=stations,
+                           fuel_grades=FUEL_GRADES,
                            selected_vehicle_id=selected_vehicle_id,
                            last_odometer=last_odometer)

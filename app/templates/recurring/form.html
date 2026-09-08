@@ -67,7 +67,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <span class="text-gray-500 dark:text-gray-400 sm:text-sm">{{ vehicles[0].currency_symbol if vehicles else '£' }}</span>
                     </div>
-                    <input type="number" name="amount" id="amount" step="0.01" min="0"
+                    <input type="number" name="amount" id="amount" step="0.001" min="0"
                            value="{{ recurring.amount if recurring and recurring.amount else '' }}"
                            placeholder="0.00"
                            class="block w-full pl-7 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">

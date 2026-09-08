@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
 from app import db
-from app.models import Vehicle, VehicleSpec, VehiclePart, FuelLog, Expense, User, Reminder, VehicleNote, VEHICLE_TYPES, FUEL_TYPES, VEHICLE_SPEC_TYPES, REMINDER_TYPES, PART_TYPES, TRACKING_UNITS, ODOMETER_UNITS, AppSettings
+from app.models import Vehicle, VehicleSpec, VehiclePart, FuelLog, Expense, User, Reminder, VehicleNote, VEHICLE_TYPES, FUEL_TYPES, FUEL_GRADES, VEHICLE_SPEC_TYPES, REMINDER_TYPES, PART_TYPES, TRACKING_UNITS, ODOMETER_UNITS, AppSettings
 from app.services.tessie import TessieService
 
 bp = Blueprint('vehicles', __name__, url_prefix='/vehicles')
@@ -63,6 +63,7 @@ def new():
             registration=request.form.get('registration'),
             vin=request.form.get('vin'),
             fuel_type=request.form.get('fuel_type'),
+            default_fuel_grade=request.form.get('default_fuel_grade') or None,
             tank_capacity=tank_capacity_to_liters(float(request.form.get('tank_capacity')), current_user.volume_unit) if request.form.get('tank_capacity') else None,
             notes=request.form.get('notes')
         )
@@ -104,6 +105,7 @@ def new():
                            vehicle=None,
                            vehicle_types=VEHICLE_TYPES,
                            fuel_types=FUEL_TYPES,
+                           fuel_grades=FUEL_GRADES,
                            tracking_units=TRACKING_UNITS,
                            odometer_units=ODOMETER_UNITS,
                            spec_types=VEHICLE_SPEC_TYPES,
@@ -195,6 +197,12 @@ def edit(vehicle_id):
         vehicle.tank_capacity = tank_capacity_to_liters(float(request.form.get('tank_capacity')), current_user.volume_unit) if request.form.get('tank_capacity') else None
         vehicle.notes = request.form.get('notes')
 
+        old_fuel_grade = vehicle.default_fuel_grade
+        vehicle.default_fuel_grade = request.form.get('default_fuel_grade') or None
+        if vehicle.default_fuel_grade and vehicle.default_fuel_grade != old_fuel_grade:
+            # Retroactively apply the new default to every existing fill-up for this vehicle
+            FuelLog.query.filter_by(vehicle_id=vehicle.id).update({'fuel_grade': vehicle.default_fuel_grade})
+
         # Handle Tessie integration fields
         vehicle.tessie_vin = request.form.get('tessie_vin') or None
         vehicle.tessie_enabled = request.form.get('tessie_enabled') == 'on'
@@ -241,6 +249,7 @@ def edit(vehicle_id):
                            vehicle=vehicle,
                            vehicle_types=VEHICLE_TYPES,
                            fuel_types=FUEL_TYPES,
+                           fuel_grades=FUEL_GRADES,
                            tracking_units=TRACKING_UNITS,
                            odometer_units=ODOMETER_UNITS,
                            spec_types=VEHICLE_SPEC_TYPES,

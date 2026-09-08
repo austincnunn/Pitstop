@@ -133,7 +133,7 @@
                         </div>
                         <div>
                             <label for="total_cost" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Total Cost') }} ({{ current_user.currency }})</label>
-                            <input type="number" name="total_cost" id="total_cost" step="0.01"
+                            <input type="number" name="total_cost" id="total_cost" step="0.001"
                                    value="{{ session.total_cost if session else '' }}"
                                    class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         </div>

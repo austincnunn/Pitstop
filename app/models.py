@@ -45,6 +45,7 @@ DASHBOARD_WIDGETS = {
     'vehicles': _l('Your Vehicles'),
     'recent_fuel': _l('Recent Fuel Logs'),
     'recent_expenses': _l('Recent Expenses'),
+    'fuel_costs_by_grade': _l('Fuel Costs by Type'),
 }
 
 
@@ -118,6 +119,7 @@ class User(UserMixin, db.Model):
     show_widget_vehicles = db.Column(db.Boolean, default=True)
     show_widget_recent_fuel = db.Column(db.Boolean, default=True)
     show_widget_recent_expenses = db.Column(db.Boolean, default=True)
+    show_widget_fuel_costs_by_grade = db.Column(db.Boolean, default=True)
 
     # Relationships
     owned_vehicles = db.relationship('Vehicle', backref='owner', lazy='dynamic',
@@ -248,6 +250,7 @@ class Vehicle(db.Model):
 
     # Fuel info
     fuel_type = db.Column(db.String(20), default='petrol')  # petrol, diesel, electric, hybrid, lpg
+    default_fuel_grade = db.Column(db.String(20))  # regular, plus, premium, e85, e15, diesel -- optional, auto-selects on fuel entry
     tank_capacity = db.Column(db.Float)  # in liters
     battery_capacity = db.Column(db.Float)  # in kWh for EVs
 
@@ -451,6 +454,7 @@ class FuelLog(db.Model):
     volume = db.Column(db.Float)  # stored in liters
     price_per_unit = db.Column(db.Float)  # price per liter
     total_cost = db.Column(db.Float)
+    fuel_grade = db.Column(db.String(20), nullable=False, default='regular')  # regular, plus, premium, e85, e15, diesel
 
     is_full_tank = db.Column(db.Boolean, default=True)
     is_missed = db.Column(db.Boolean, default=False)  # missed fill-up flag
@@ -498,6 +502,7 @@ class FuelLog(db.Model):
             'volume': self.volume,
             'price_per_unit': self.price_per_unit,
             'total_cost': self.total_cost,
+            'fuel_grade': self.fuel_grade,
             'is_full_tank': self.is_full_tank,
             'is_missed': self.is_missed,
             'station': self.station,
@@ -759,6 +764,16 @@ FUEL_TYPES = [
     ('hydrogen', _l('Hydrogen')),
     ('e85', _l('E85/Flex Fuel')),
     ('other', _l('Other'))
+]
+
+# Fuel grades (per fill-up, distinct from Vehicle.fuel_type)
+FUEL_GRADES = [
+    ('regular', _l('Regular')),
+    ('plus', _l('Plus')),
+    ('premium', _l('Premium')),
+    ('e85', _l('E85')),
+    ('e15', _l('E15')),
+    ('diesel', _l('Diesel')),
 ]
 
 # Reminder types

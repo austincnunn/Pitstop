@@ -1,0 +1,13 @@
+<h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">{{ w.title }}</h2>
+{% if fuel_costs_by_grade %}
+<ul class="space-y-3">
+    {% for entry in fuel_costs_by_grade %}
+    <li class="flex items-center justify-between">
+        <span class="text-sm text-gray-700 dark:text-gray-300">{{ entry.label }}</span>
+        <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ "%.2f"|format(entry.total_cost) }} {{ current_user.currency }}</span>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-sm text-gray-500 dark:text-gray-400">{{ _('No fuel logs yet. Add a fill-up to see costs by fuel type.') }}</p>
+{% endif %}
