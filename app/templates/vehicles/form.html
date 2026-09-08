@@ -56,13 +56,17 @@
                 </div>
 
                 <div>
-                    <label for="fuel_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Fuel Type') }}</label>
+                    <label for="fuel_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Powertrain') }}</label>
                     <select name="fuel_type" id="fuel_type"
                             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         {% for value, label in fuel_types %}
                         <option value="{{ value }}" {% if vehicle and vehicle.fuel_type == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
+                        {% if vehicle and vehicle.fuel_type and vehicle.fuel_type not in fuel_types|map(attribute='0') %}
+                        <option value="{{ vehicle.fuel_type }}" selected>{{ vehicle.fuel_type|capitalize }}</option>
+                        {% endif %}
                     </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('What powers this vehicle — determines whether Charging and EV features are available.') }}</p>
                 </div>
 
                 <div>

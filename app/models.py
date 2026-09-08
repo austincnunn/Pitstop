@@ -752,18 +752,16 @@ ODOMETER_UNITS = [
     ('mi', _l('Miles (mi)')),
 ]
 
-# Fuel types
+# Powertrain types (Vehicle.fuel_type) -- kept intentionally small; LPG/CNG/hydrogen/
+# plug-in-hybrid/e85/other are edge cases not worth the dropdown clutter. Existing
+# vehicles with one of those legacy values keep working (see vehicles/form.html,
+# which preserves an unrecognized current value as its own option rather than
+# silently dropping it).
 FUEL_TYPES = [
-    ('petrol', _l('Petrol/Gasoline')),
+    ('petrol', _l('Gas')),
     ('diesel', _l('Diesel')),
-    ('electric', _l('Electric')),
+    ('electric', _l('EV')),
     ('hybrid', _l('Hybrid')),
-    ('plugin_hybrid', _l('Plug-in Hybrid')),
-    ('lpg', _l('LPG')),
-    ('cng', _l('CNG')),
-    ('hydrogen', _l('Hydrogen')),
-    ('e85', _l('E85/Flex Fuel')),
-    ('other', _l('Other'))
 ]
 
 # Fuel grades (per fill-up, distinct from Vehicle.fuel_type)
