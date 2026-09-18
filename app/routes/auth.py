@@ -267,6 +267,20 @@ def settings():
         current_user.currency = currency[:10]
         current_user.date_format = request.form.get('date_format', 'MM/DD/YYYY')
 
+        # Update username if provided
+        new_username = request.form.get('username', '').strip()
+        if new_username and new_username != current_user.username:
+            error = None
+            if len(new_username) > 64:
+                error = _('Username must be 64 characters or fewer')
+            elif User.query.filter(User.username == new_username, User.id != current_user.id).first():
+                error = _('Username already exists')
+            if error:
+                flash(error, 'error')
+                branding = AppSettings.get_all_branding() if current_user.is_admin else {}
+                return render_template('auth/settings.html', branding=branding)
+            current_user.username = new_username
+
         # Update email if provided
         new_email = request.form.get('email', '').strip()
         if new_email and new_email != current_user.email:

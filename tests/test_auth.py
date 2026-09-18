@@ -268,6 +268,44 @@ class TestSettingsRoute:
         assert b'Passwords do not match' in response.data
 
 
+    def test_post_settings_changes_username(self, auth_client, test_user, app):
+        response = auth_client.post('/auth/settings', data={
+            'username': 'renamed_user',
+            'unit_system': 'imperial',
+            'currency': 'USD',
+            'language': 'en',
+            'date_format': 'MM/DD/YYYY',
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        with app.app_context():
+            assert User.query.filter_by(username='renamed_user').first() is not None
+            assert User.query.filter_by(username='testuser').first() is None
+
+    def test_post_settings_duplicate_username_rejected(self, auth_client, admin_user, app):
+        response = auth_client.post('/auth/settings', data={
+            'username': admin_user.username,
+            'unit_system': 'imperial',
+            'currency': 'USD',
+            'language': 'en',
+            'date_format': 'MM/DD/YYYY',
+        }, follow_redirects=True)
+        assert b'Username already exists' in response.data
+        with app.app_context():
+            assert User.query.filter_by(username='testuser').first() is not None
+
+    def test_post_settings_username_too_long_rejected(self, auth_client, app):
+        response = auth_client.post('/auth/settings', data={
+            'username': 'x' * 65,
+            'unit_system': 'imperial',
+            'currency': 'USD',
+            'language': 'en',
+            'date_format': 'MM/DD/YYYY',
+        }, follow_redirects=True)
+        assert b'64 characters' in response.data
+        with app.app_context():
+            assert User.query.filter_by(username='testuser').first() is not None
+
+
 class TestNotificationsRoute:
     def test_post_notifications_updates_prefs(self, auth_client, test_user, app):
         response = auth_client.post('/auth/notifications', data={
