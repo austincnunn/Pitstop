@@ -261,3 +261,28 @@ class TestAdminRoutes:
         with patch('app.routes.admin.send_backup_email_now', return_value=(True, None)):
             resp = admin_client.post('/admin/backups/email-now', follow_redirects=True)
         assert b'Backup emailed' in resp.data
+
+
+class TestSettingsNav:
+    def test_admin_sees_backups_link(self, admin_client):
+        assert b'href="/admin/backups"' in admin_client.get('/auth/settings').data
+
+    def test_non_admin_does_not(self, auth_client):
+        assert b'/admin/backups' not in auth_client.get('/auth/settings').data
+
+    def test_backups_page_shows_nav_with_backups_active(self, admin_client):
+        import re
+        html = admin_client.get('/admin/backups').data.decode()
+        active = re.findall(r'<a href="[^"]*" class="settings-nav-item active', html)
+        assert len(active) == 1
+        assert re.search(r'href="/admin/backups" class="settings-nav-item active', html)
+        # tab links point back at the settings page instead of in-page anchors
+        assert 'href="/auth/settings#account"' in html
+        assert 'showSection' not in html
+
+    def test_settings_page_still_has_units_active(self, admin_client):
+        import re
+        html = admin_client.get('/auth/settings').data.decode()
+        assert re.search(r'href="#units" class="settings-nav-item active', html)
+        assert html.count('settings-nav-item active') == 1
+        assert "showSection('account', event)" in html

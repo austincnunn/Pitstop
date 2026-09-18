@@ -1,0 +1,113 @@
+{# Settings sidebar. Include with: active_section, nav_base ('' on the settings page, its URL elsewhere), on_other_page #}
+<nav class="lg:w-48 flex-shrink-0">
+            <ul class="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0">
+                <li>
+                    <a href="{{ nav_base }}#units" class="settings-nav-item{% if active_section == 'units' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap"{% if not on_other_page %} onclick="showSection('units', event)"{% endif %}>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                        {{ _('Units & Values') }}
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ nav_base }}#account" class="settings-nav-item{% if active_section == 'account' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap"{% if not on_other_page %} onclick="showSection('account', event)"{% endif %}>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        {{ _('Account & Security') }}
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ nav_base }}#menu" class="settings-nav-item{% if active_section == 'menu' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap"{% if not on_other_page %} onclick="showSection('menu', event)"{% endif %}>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                        {{ _('Menu & Navigation') }}
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ nav_base }}#integrations" class="settings-nav-item{% if active_section == 'integrations' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap"{% if not on_other_page %} onclick="showSection('integrations', event)"{% endif %}>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
+                        {{ _('Import / Export') }}
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ nav_base }}#api" class="settings-nav-item{% if active_section == 'api' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap"{% if not on_other_page %} onclick="showSection('api', event)"{% endif %}>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                        </svg>
+                        {{ _('API') }}
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ nav_base }}#services" class="settings-nav-item{% if active_section == 'services' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap"{% if not on_other_page %} onclick="showSection('services', event)"{% endif %}>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/>
+                        </svg>
+                        {{ _('Integrations') }}
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ nav_base }}#notifications" class="settings-nav-item{% if active_section == 'notifications' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap"{% if not on_other_page %} onclick="showSection('notifications', event)"{% endif %}>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        {{ _('Notifications') }}
+                    </a>
+                </li>
+                {% if current_user.is_admin %}
+                <li>
+                    <a href="{{ nav_base }}#branding" class="settings-nav-item{% if active_section == 'branding' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap"{% if not on_other_page %} onclick="showSection('branding', event)"{% endif %}>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                        {{ _('Branding') }}
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('admin.backups') }}" class="settings-nav-item{% if active_section == 'backups' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                        </svg>
+                        {{ _('Backups') }}
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    <a href="{{ nav_base }}#about" class="settings-nav-item{% if active_section == 'about' %} active{% endif %} flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap"{% if not on_other_page %} onclick="showSection('about', event)"{% endif %}>
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ _('About') }}
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+<style>
+    .settings-nav-item {
+        color: #6b7280;
+        transition: all 0.15s ease;
+    }
+    .settings-nav-item:hover {
+        color: #111827;
+        background-color: #f3f4f6;
+    }
+    .settings-nav-item.active {
+        color: var(--primary-600);
+        background-color: var(--primary-50);
+    }
+    .dark .settings-nav-item {
+        color: #9ca3af;
+    }
+    .dark .settings-nav-item:hover {
+        color: #f3f4f6;
+        background-color: #374151;
+    }
+    .dark .settings-nav-item.active {
+        color: var(--primary-400);
+        background-color: var(--primary-900);
+    }
+</style>
