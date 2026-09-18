@@ -78,6 +78,42 @@
                 </div>
             </div>
 
+            <!-- Email backups -->
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <label for="backup_email_enabled" class="text-sm font-medium text-gray-900 dark:text-white">Email a backup to the primary admin</label>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            Sent to {% if primary_admin %}<strong>{{ primary_admin.email }}</strong> ({{ primary_admin.username }}){% else %}the primary admin{% endif %}
+                            during the backup hour above, independent of the disk schedule.
+                        </p>
+                    </div>
+                    <input type="checkbox" name="backup_email_enabled" id="backup_email_enabled"
+                           {% if settings.backup_email_enabled %}checked{% endif %}
+                           class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div>
+                        <label for="backup_email_interval_days" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Send every N days</label>
+                        <input type="number" name="backup_email_interval_days" id="backup_email_interval_days"
+                               value="{{ settings.backup_email_interval_days }}" min="{{ email_min_days }}" max="{{ email_max_days }}"
+                               class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ email_min_days }} to {{ email_max_days }} days.</p>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <p class="text-sm text-gray-700 dark:text-gray-300">Last emailed:
+                            {% if settings.backup_email_last_sent %}{{ settings.backup_email_last_sent[:16].replace('T', ' ') }} UTC{% else %}never{% endif %}
+                        </p>
+                        {% if not smtp_configured %}
+                        <p class="mt-1 text-sm text-amber-600 dark:text-amber-400">SMTP isn't configured, so emails can't be sent yet. Set it up in Settings.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    The backup includes a full database dump, which contains every user's data, password hashes and API keys. Use TLS/SSL for SMTP and a mailbox you trust. If it is over 20 MB, uploaded files are dropped from the email (the full backup stays on the server).
+                </p>
+            </div>
+
             <div class="flex items-center gap-3">
                 <button type="submit"
                         class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md shadow-sm">
@@ -98,6 +134,21 @@
             <button type="submit"
                     class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                 Run Now
+            </button>
+        </form>
+    </div>
+
+    <!-- Email backup now -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 flex items-center justify-between">
+        <div>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">Email Backup Now</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create a backup and email it to the primary admin right away (also resets the interval clock).</p>
+        </div>
+        <form method="POST" action="{{ url_for('admin.email_backup_now') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                Email Now
             </button>
         </form>
     </div>

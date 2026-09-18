@@ -3,6 +3,7 @@ import smtplib
 import json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 from app.models import AppSettings
@@ -26,25 +27,39 @@ class NotificationService:
         }
 
     @staticmethod
-    def send_email(to_email, subject, body, html_body=None):
-        """Send an email using configured SMTP settings."""
+    def send_email(to_email, subject, body, html_body=None, attachments=None):
+        """Send an email using configured SMTP settings.
+
+        attachments: optional list of (filename, bytes) tuples.
+        """
         config = NotificationService.get_smtp_config()
 
         if not config['host'] or not config['username']:
             return False, "SMTP not configured"
 
         try:
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = f"{config['sender_name']} <{config['sender']}>"
-            msg['To'] = to_email
+            body_part = MIMEMultipart('alternative')
 
             # Attach plain text
-            msg.attach(MIMEText(body, 'plain'))
+            body_part.attach(MIMEText(body, 'plain'))
 
             # Attach HTML if provided
             if html_body:
-                msg.attach(MIMEText(html_body, 'html'))
+                body_part.attach(MIMEText(html_body, 'html'))
+
+            if attachments:
+                msg = MIMEMultipart('mixed')
+                msg.attach(body_part)
+                for filename, data in attachments:
+                    part = MIMEApplication(data)
+                    part.add_header('Content-Disposition', 'attachment', filename=filename)
+                    msg.attach(part)
+            else:
+                msg = body_part
+
+            msg['Subject'] = subject
+            msg['From'] = f"{config['sender_name']} <{config['sender']}>"
+            msg['To'] = to_email
 
             # Connect to SMTP server
             if config['use_ssl']:

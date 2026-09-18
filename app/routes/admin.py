@@ -4,7 +4,11 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from app import db
 from app.models import AppSettings
-from app.services.backup_service import get_backup_dir, create_backup_file, list_backups, cleanup_old_backups
+from app.services.backup_service import (
+    get_backup_dir, create_backup_file, list_backups, cleanup_old_backups,
+    clamp_email_interval, get_primary_admin, send_backup_email_now,
+    BACKUP_EMAIL_MIN_DAYS, BACKUP_EMAIL_MAX_DAYS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +37,17 @@ def backups():
         'backup_frequency': AppSettings.get('backup_frequency', 'daily'),
         'backup_hour': int(AppSettings.get('backup_hour', '2')),
         'backup_retention': int(AppSettings.get('backup_retention', '7')),
+        'backup_email_enabled': AppSettings.get('backup_email_enabled', 'false') == 'true',
+        'backup_email_interval_days': clamp_email_interval(AppSettings.get('backup_email_interval_days', '7')),
+        'backup_email_last_sent': AppSettings.get('backup_email_last_sent', ''),
     }
+    primary = get_primary_admin()
 
     return render_template('admin/backups.html', backups=existing, settings=settings,
-                           backup_dir=backup_dir)
+                           backup_dir=backup_dir,
+                           primary_admin=primary,
+                           smtp_configured=bool(AppSettings.get('smtp_host') and AppSettings.get('smtp_username')),
+                           email_min_days=BACKUP_EMAIL_MIN_DAYS, email_max_days=BACKUP_EMAIL_MAX_DAYS)
 
 
 @bp.route('/backups/settings', methods=['POST'])
@@ -65,6 +76,11 @@ def save_backup_settings():
     AppSettings.set('backup_hour', str(hour))
     AppSettings.set('backup_retention', str(retention))
 
+    AppSettings.set('backup_email_enabled',
+                    'true' if request.form.get('backup_email_enabled') == 'on' else 'false')
+    AppSettings.set('backup_email_interval_days',
+                    str(clamp_email_interval(request.form.get('backup_email_interval_days'))))
+
     flash('Backup settings saved.', 'success')
     return redirect(url_for('admin.backups'))
 
@@ -79,13 +95,26 @@ def run_backup_now():
     retention = int(AppSettings.get('backup_retention', '7'))
 
     try:
-        fname = create_backup_file(current_user, upload_folder, backup_dir)
+        fname = create_backup_file(current_user, upload_folder, backup_dir, include_db_dump=True)
         cleanup_old_backups(backup_dir, retention)
         flash(f'Backup created: {fname}', 'success')
     except Exception as e:
         logger.error('Manual backup failed: %s', e)
         flash(f'Backup failed: {e}', 'error')
 
+    return redirect(url_for('admin.backups'))
+
+
+@bp.route('/backups/email-now', methods=['POST'])
+@login_required
+def email_backup_now():
+    _require_admin()
+    from flask import current_app
+    ok, error = send_backup_email_now(current_app._get_current_object())
+    if ok:
+        flash('Backup emailed to the primary admin.', 'success')
+    else:
+        flash(f'Backup email failed: {error}', 'error')
     return redirect(url_for('admin.backups'))
 
 

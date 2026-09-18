@@ -7,10 +7,19 @@ import io
 import json
 import logging
 import os
+import sqlite3
+import subprocess
+import tempfile
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
+from urllib.parse import urlsplit, unquote
 
 logger = logging.getLogger(__name__)
+
+# Most mail servers reject attachments much over 20-25 MB.
+BACKUP_EMAIL_MAX_BYTES = 20 * 1024 * 1024
+BACKUP_EMAIL_MIN_DAYS = 7
+BACKUP_EMAIL_MAX_DAYS = 180
 
 
 def get_backup_dir(app):
@@ -26,10 +35,15 @@ def get_backup_dir(app):
     return backup_dir
 
 
-def create_backup_file(user, upload_folder, backup_dir):
+def create_backup_file(user, upload_folder, backup_dir, include_db_dump=False):
     """
     Create a full backup ZIP for *user* and save it to *backup_dir*.
     Returns the filename of the created backup.
+
+    include_db_dump: also embed a full database dump (database.dump for
+    Postgres, database.sqlite for SQLite). The dump contains every user's
+    data plus password hashes and API keys, so only admin-level backups
+    should pass True.
     """
     from config import APP_VERSION
 
@@ -107,6 +121,17 @@ def create_backup_file(user, upload_folder, backup_dir):
             'total_files': len(manifest['files']),
             'files': manifest['files']
         }
+
+        if include_db_dump:
+            dump = create_db_dump()
+            if dump:
+                dump_name, dump_bytes = dump
+                zf.writestr(dump_name, dump_bytes)
+                manifest['database_dump'] = {
+                    'filename': dump_name,
+                    'size': len(dump_bytes),
+                    'sha256': hashlib.sha256(dump_bytes).hexdigest(),
+                }
 
         zf.writestr('data.json', json.dumps(export_data, indent=2))
         zf.writestr('manifest.json', json.dumps(manifest, indent=2))
@@ -374,3 +399,264 @@ def _serialize_station(station):
         'last_used': station.last_used.isoformat() if station.last_used else None,
         'created_at': station.created_at.isoformat() if station.created_at else None
     }
+
+
+# ---------------------------------------------------------------------------
+# Database dump
+# ---------------------------------------------------------------------------
+
+def _parse_postgres_url(uri):
+    """Split a SQLAlchemy Postgres URL into pg_dump connection parts."""
+    parts = urlsplit(uri.replace('postgresql+psycopg2://', 'postgresql://')
+                        .replace('postgresql+psycopg://', 'postgresql://'))
+    return {
+        'host': parts.hostname or 'localhost',
+        'port': str(parts.port or 5432),
+        'user': unquote(parts.username) if parts.username else None,
+        'password': unquote(parts.password) if parts.password else None,
+        'dbname': parts.path.lstrip('/'),
+    }
+
+
+def create_db_dump():
+    """
+    Dump the whole database. Returns (filename, bytes) or None on failure
+    (logged, never raised -- a failed dump must not abort the backup).
+    """
+    from flask import current_app
+    uri = current_app.config['SQLALCHEMY_DATABASE_URI']
+
+    try:
+        if uri.startswith('postgresql'):
+            conn = _parse_postgres_url(uri)
+            cmd = ['pg_dump', '-Fc', '--no-owner', '-h', conn['host'], '-p', conn['port']]
+            if conn['user']:
+                cmd += ['-U', conn['user']]
+            cmd.append(conn['dbname'])
+            env = dict(os.environ)
+            if conn['password']:
+                env['PGPASSWORD'] = conn['password']
+            result = subprocess.run(cmd, env=env, capture_output=True, timeout=300)
+            if result.returncode != 0:
+                logger.error('pg_dump failed: %s', result.stderr.decode('utf-8', 'replace').strip())
+                return None
+            return 'database.dump', result.stdout
+
+        if uri.startswith('sqlite:///') and ':memory:' not in uri:
+            db_path = uri.replace('sqlite:///', '')
+            fd, tmp_path = tempfile.mkstemp(suffix='.sqlite')
+            os.close(fd)
+            try:
+                src = sqlite3.connect(db_path)
+                dst = sqlite3.connect(tmp_path)
+                try:
+                    src.backup(dst)
+                finally:
+                    dst.close()
+                    src.close()
+                with open(tmp_path, 'rb') as f:
+                    return 'database.sqlite', f.read()
+            finally:
+                os.remove(tmp_path)
+    except (OSError, subprocess.SubprocessError, sqlite3.Error) as e:
+        logger.error('Database dump failed: %s', e)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Emailed backups
+# ---------------------------------------------------------------------------
+
+def clamp_email_interval(value):
+    """Parse the email interval (days), clamped to the allowed range."""
+    try:
+        days = int(value)
+    except (TypeError, ValueError):
+        days = BACKUP_EMAIL_MIN_DAYS
+    return max(BACKUP_EMAIL_MIN_DAYS, min(BACKUP_EMAIL_MAX_DAYS, days))
+
+
+def backup_email_due(now, last_sent, interval_days):
+    """True if a backup email is due: never sent, unparseable, or interval elapsed."""
+    if not last_sent:
+        return True
+    try:
+        last = datetime.fromisoformat(last_sent)
+    except ValueError:
+        return True
+    return now - last >= timedelta(days=interval_days)
+
+
+def get_primary_admin():
+    """The primary admin is the admin account with the lowest id."""
+    from app.models import User
+    return User.query.filter_by(is_admin=True).order_by(User.id).first()
+
+
+def build_email_attachment(zip_path, max_bytes=BACKUP_EMAIL_MAX_BYTES):
+    """
+    Pick what to attach so the email stays under max_bytes. Tiers:
+      1. the full backup ZIP
+      2. ZIP without uploaded files (data.json + manifest + database dump)
+      3. the database dump alone
+      4. data.json alone
+    Returns (filename, bytes, description) or None if nothing fits.
+    """
+    with open(zip_path, 'rb') as f:
+        full = f.read()
+    name = os.path.basename(zip_path)
+    if len(full) <= max_bytes:
+        return name, full, 'the full backup (data, uploaded files and database dump)'
+
+    with zipfile.ZipFile(io.BytesIO(full)) as zin:
+        names = zin.namelist()
+        slim = io.BytesIO()
+        with zipfile.ZipFile(slim, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for n in names:
+                if not n.startswith('uploads/'):
+                    zout.writestr(n, zin.read(n))
+        slim_bytes = slim.getvalue()
+        if len(slim_bytes) <= max_bytes:
+            return (name.replace('.zip', '_no_uploads.zip'), slim_bytes,
+                    'a reduced backup WITHOUT uploaded files (too large to email)')
+
+        for dump_name in ('database.dump', 'database.sqlite'):
+            if dump_name in names:
+                data = zin.read(dump_name)
+                if len(data) <= max_bytes:
+                    return (dump_name, data,
+                            'the database dump only (backup too large to email; '
+                            'the full backup is on the server)')
+
+        if 'data.json' in names:
+            data = zin.read('data.json')
+            if len(data) <= max_bytes:
+                return ('data.json', data,
+                        'the app data (data.json) only (backup too large to email; '
+                        'the full backup is on the server)')
+    return None
+
+
+def email_backup(zip_path, recipient, max_bytes=BACKUP_EMAIL_MAX_BYTES):
+    """Email a backup ZIP (with size fallback) to recipient. Returns (ok, error)."""
+    from app.services.notifications import NotificationService
+
+    chosen = build_email_attachment(zip_path, max_bytes)
+    if not chosen:
+        return False, 'Backup is too large to email'
+    filename, data, description = chosen
+
+    with zipfile.ZipFile(zip_path) as zf:
+        entries = zf.namelist()
+    has_dump = any(n in entries for n in ('database.dump', 'database.sqlite'))
+    note = '' if has_dump else (
+        '\n\nNote: no database dump is included (pg_dump was unavailable or failed; '
+        'see the server logs).')
+    body = (
+        f'Attached is {description}.\n\n'
+        'This file contains your data, and the database dump (if present) also '
+        'contains password hashes and API keys. Store it somewhere private.'
+        f'{note}'
+    )
+    return NotificationService.send_email(
+        recipient,
+        f'Pitstop backup {datetime.utcnow().strftime("%Y-%m-%d")}',
+        body,
+        attachments=[(filename, data)],
+    )
+
+
+def send_backup_email_now(app, primary=None):
+    """
+    Create a fresh backup for the primary admin, email it, and record the
+    send time. Returns (ok, error_message).
+    """
+    from app.models import AppSettings
+    primary = primary or get_primary_admin()
+    if not primary or not primary.email:
+        return False, 'No primary admin with an email address'
+
+    backup_dir = get_backup_dir(app)
+    fname = create_backup_file(primary, app.config['UPLOAD_FOLDER'], backup_dir,
+                               include_db_dump=True)
+    ok, error = email_backup(os.path.join(backup_dir, fname), primary.email)
+    if ok:
+        AppSettings.set('backup_email_last_sent', datetime.utcnow().isoformat())
+    else:
+        logger.error('Backup email failed: %s', error)
+    return ok, error
+
+
+# ---------------------------------------------------------------------------
+# Scheduler tick
+# ---------------------------------------------------------------------------
+
+def run_scheduled_backup_tick(app, now=None):
+    """
+    One hourly scheduler check. Disk backups follow the daily/weekly/monthly
+    schedule; the emailed backup has its own interval clock. Both only fire
+    during the configured backup hour (UTC).
+    """
+    from app.models import AppSettings, User
+
+    now = now or datetime.utcnow()
+    target_hour = int(AppSettings.get('backup_hour', '2'))
+    if now.hour != target_hour:
+        return
+
+    disk_due = AppSettings.get('backup_enabled', 'false') == 'true'
+    if disk_due:
+        frequency = AppSettings.get('backup_frequency', 'daily')
+        if frequency == 'weekly' and now.weekday() != 0:
+            disk_due = False
+        elif frequency == 'monthly' and now.day != 1:
+            disk_due = False
+    if disk_due:
+        last_run = AppSettings.get('backup_last_run', '')
+        try:
+            if last_run and (now - datetime.fromisoformat(last_run)).total_seconds() < 3600:
+                disk_due = False
+        except ValueError:
+            pass
+
+    email_due = AppSettings.get('backup_email_enabled', 'false') == 'true'
+    if email_due:
+        interval = clamp_email_interval(AppSettings.get('backup_email_interval_days', '7'))
+        email_due = backup_email_due(now, AppSettings.get('backup_email_last_sent', ''), interval)
+    if email_due:
+        last_attempt = AppSettings.get('backup_email_last_attempt', '')
+        try:
+            if last_attempt and (now - datetime.fromisoformat(last_attempt)).total_seconds() < 3600:
+                email_due = False
+        except ValueError:
+            pass
+
+    if not (disk_due or email_due):
+        return
+
+    backup_dir = get_backup_dir(app)
+    upload_folder = app.config['UPLOAD_FOLDER']
+    retention = int(AppSettings.get('backup_retention', '7'))
+    primary = get_primary_admin()
+
+    if disk_due:
+        for admin_user in User.query.filter_by(is_admin=True).all():
+            try:
+                fname = create_backup_file(admin_user, upload_folder, backup_dir, include_db_dump=True)
+                logger.info('Scheduled backup created for %s: %s', admin_user.username, fname)
+            except Exception as e:
+                logger.error('Scheduled backup failed for %s: %s', admin_user.username, e)
+        AppSettings.set('backup_last_run', now.isoformat())
+
+    if email_due:
+        AppSettings.set('backup_email_last_attempt', now.isoformat())
+        try:
+            ok, error = send_backup_email_now(app, primary)
+            if ok:
+                logger.info('Scheduled backup emailed to %s', primary.email)
+            else:
+                logger.error('Scheduled backup email failed: %s', error)
+        except Exception as e:
+            logger.error('Scheduled backup email failed: %s', e)
+
+    cleanup_old_backups(backup_dir, retention)

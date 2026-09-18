@@ -375,65 +375,14 @@ def _start_backup_scheduler(app):
     logger = logging.getLogger(__name__)
 
     def backup_loop():
-        """Check every hour whether a scheduled backup is due."""
+        """Check every hour whether a scheduled backup (disk and/or email) is due."""
         time.sleep(90)  # short initial delay so DB is fully ready
 
         while True:
             try:
                 with app.app_context():
-                    from app.models import AppSettings, User
-                    from app.services.backup_service import (
-                        get_backup_dir, create_backup_file, cleanup_old_backups
-                    )
-
-                    enabled = AppSettings.get('backup_enabled', 'false') == 'true'
-                    if not enabled:
-                        time.sleep(3600)
-                        continue
-
-                    frequency = AppSettings.get('backup_frequency', 'daily')
-                    target_hour = int(AppSettings.get('backup_hour', '2'))
-                    retention = int(AppSettings.get('backup_retention', '7'))
-
-                    now = __import__('datetime').datetime.utcnow()
-                    if now.hour != target_hour:
-                        time.sleep(3600)
-                        continue
-
-                    # Check frequency gate
-                    if frequency == 'weekly' and now.weekday() != 0:   # Monday
-                        time.sleep(3600)
-                        continue
-                    if frequency == 'monthly' and now.day != 1:
-                        time.sleep(3600)
-                        continue
-
-                    # Check we haven't already run in this hour window
-                    last_run_str = AppSettings.get('backup_last_run', '')
-                    if last_run_str:
-                        try:
-                            last_run = __import__('datetime').datetime.fromisoformat(last_run_str)
-                            if (now - last_run).total_seconds() < 3600:
-                                time.sleep(3600)
-                                continue
-                        except ValueError:
-                            pass
-
-                    backup_dir = get_backup_dir(app)
-                    upload_folder = app.config['UPLOAD_FOLDER']
-
-                    # Back up every admin user
-                    admins = User.query.filter_by(is_admin=True).all()
-                    for admin_user in admins:
-                        try:
-                            fname = create_backup_file(admin_user, upload_folder, backup_dir)
-                            logger.info('Scheduled backup created for %s: %s', admin_user.username, fname)
-                        except Exception as e:
-                            logger.error('Scheduled backup failed for %s: %s', admin_user.username, e)
-
-                    cleanup_old_backups(backup_dir, retention)
-                    AppSettings.set('backup_last_run', now.isoformat())
-
+                    from app.services.backup_service import run_scheduled_backup_tick
+                    run_scheduled_backup_tick(app)
             except Exception as e:
                 logger.error('Error in backup scheduler: %s', e)
 

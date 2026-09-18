@@ -49,6 +49,8 @@ class Config:
         )
     INTERNAL_API_KEY = os.environ.get('INTERNAL_API_KEY') or __import__('secrets').token_hex(32)
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'sqlite:///{basedir}/data/pitstop.db'
+    # Recycle dead connections (e.g. after a DB restart) instead of erroring on them
+    SQLALCHEMY_ENGINE_OPTIONS = {'pool_pre_ping': True}
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or str(basedir / 'data' / 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max upload

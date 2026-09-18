@@ -9,6 +9,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gir1.2-pango-1.0 \
     gir1.2-gdkpixbuf-2.0 \
     gosu \
+    postgresql-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# pg_dump for full-database backups. Must match the server's major version
+# (postgres:18 in docker-compose.yml); Debian's own package is older, so use
+# the official PGDG repo via postgresql-common's helper script.
+RUN /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
+    && apt-get install -y --no-install-recommends postgresql-client-18 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
