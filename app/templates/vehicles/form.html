@@ -19,13 +19,13 @@
                     <input type="text" name="name" id="name" required
                            value="{{ vehicle.name if vehicle else '' }}"
                            placeholder="e.g., My Daily Driver"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
                     <label for="vehicle_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Type') }} *</label>
                     <select name="vehicle_type" id="vehicle_type" required
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         {% for value, label in vehicle_types %}
                         <option value="{{ value }}" {% if vehicle and vehicle.vehicle_type == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
@@ -35,7 +35,7 @@
                 <div>
                     <label for="tracking_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Tracking Unit') }}</label>
                     <select name="tracking_unit" id="tracking_unit"
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         {% for value, label in tracking_units %}
                         <option value="{{ value }}" {% if vehicle and vehicle.tracking_unit == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
@@ -46,7 +46,7 @@
                 <div>
                     <label for="odometer_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Odometer Unit') }}</label>
                     <select name="odometer_unit" id="odometer_unit"
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <option value="" {% if not vehicle or not vehicle.odometer_unit %}selected{% endif %}>{{ _('Use account default') }} ({{ current_user.distance_unit }})</option>
                         {% for value, label in odometer_units %}
                         <option value="{{ value }}" {% if vehicle and vehicle.odometer_unit == value %}selected{% endif %}>{{ label }}</option>
@@ -58,7 +58,7 @@
                 <div>
                     <label for="fuel_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Powertrain') }}</label>
                     <select name="fuel_type" id="fuel_type"
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         {% for value, label in fuel_types %}
                         <option value="{{ value }}" {% if vehicle and vehicle.fuel_type == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
@@ -72,7 +72,7 @@
                 <div>
                     <label for="default_fuel_grade" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Default Fuel Type') }}</label>
                     <select name="default_fuel_grade" id="default_fuel_grade"
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <option value="">{{ _('No default') }}</option>
                         {% for value, label in fuel_grades %}
                         <option value="{{ value }}" {% if vehicle and vehicle.default_fuel_grade == value %}selected{% endif %}>{{ label }}</option>
@@ -86,7 +86,7 @@
                     <input type="text" name="make" id="make"
                            value="{{ vehicle.make if vehicle else '' }}"
                            placeholder="e.g., Toyota"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
@@ -94,7 +94,7 @@
                     <input type="text" name="model" id="model"
                            value="{{ vehicle.model if vehicle else '' }}"
                            placeholder="e.g., Corolla"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
@@ -103,7 +103,7 @@
                            value="{{ vehicle.year if vehicle else '' }}"
                            min="1900" max="2100"
                            placeholder="e.g., 2020"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
@@ -124,7 +124,7 @@
                     <input type="number" name="tank_capacity" id="tank_capacity" step="0.01"
                            value="{{ tank_display }}"
                            placeholder="{{ tank_placeholder }}"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
             </div>
         </div>
@@ -138,7 +138,7 @@
                     <input type="text" name="registration" id="registration"
                            value="{{ vehicle.registration if vehicle else '' }}"
                            placeholder="e.g., ABC 123"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
@@ -146,7 +146,7 @@
                     <input type="text" name="vin" id="vin"
                            value="{{ vehicle.vin if vehicle else '' }}"
                            placeholder="Vehicle Identification Number"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
             </div>
         </div>
@@ -177,17 +177,17 @@
                     {% for spec in specs %}
                     <div class="spec-row flex items-center gap-3">
                         <select name="spec_type[]" onchange="handleSpecTypeChange(this)"
-                                class="w-40 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                class="w-40 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                             {% for value, label in spec_types %}
                             <option value="{{ value }}" {% if spec.spec_type == value %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                         <input type="text" name="spec_label[]" value="{{ spec.label }}"
                                placeholder="Custom label"
-                               class="spec-label w-32 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 {% if spec.spec_type != 'custom' %}hidden{% endif %}">
+                               class="spec-label w-32 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 {% if spec.spec_type != 'custom' %}hidden{% endif %}">
                         <input type="text" name="spec_value[]" value="{{ spec.value }}"
                                placeholder="Value"
-                               class="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                               class="flex-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <button type="button" onclick="removeSpecRow(this)"
                                 class="p-2 text-gray-400 hover:text-red-500">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -215,7 +215,7 @@
                 <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('General Notes') }}</label>
                 <textarea name="notes" id="notes" rows="4"
                           placeholder="Any additional notes about this vehicle..."
-                          class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ vehicle.notes if vehicle and vehicle.notes else '' }}</textarea>
+                          class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ vehicle.notes if vehicle and vehicle.notes else '' }}</textarea>
             </div>
         </div>
 
@@ -252,7 +252,7 @@
                                value="{{ vehicle.tessie_vin if vehicle and vehicle.tessie_vin else '' }}"
                                placeholder="Enter Tesla VIN or select from list"
                                maxlength="20"
-                               class="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 font-mono">
+                               class="flex-1 font-mono rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <button type="button" onclick="fetchTessieVehicles()"
                                 class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                             <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -317,15 +317,15 @@ function addSpecRow() {
 
     row.innerHTML = `
         <select name="spec_type[]" onchange="handleSpecTypeChange(this)"
-                class="w-40 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                class="w-40 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
             ${options}
         </select>
         <input type="text" name="spec_label[]" value=""
                placeholder="Custom label"
-               class="spec-label w-32 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 hidden">
+               class="spec-label w-32 text-sm hidden rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
         <input type="text" name="spec_value[]" value=""
                placeholder="Value"
-               class="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+               class="flex-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
         <button type="button" onclick="removeSpecRow(this)"
                 class="p-2 text-gray-400 hover:text-red-500">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

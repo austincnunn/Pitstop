@@ -20,7 +20,7 @@
             <div>
                 <label for="vehicle_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Vehicle') }} *</label>
                 <select name="vehicle_id" id="vehicle_id" required
-                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     {% for vehicle in vehicles %}
                     <option value="{{ vehicle.id }}" {% if selected_vehicle and selected_vehicle|int == vehicle.id %}selected{% endif %}>
                         {{ vehicle.name }}
@@ -49,13 +49,13 @@
                 <input type="text" name="title" id="title" required
                        value="{{ document.title if document else '' }}"
                        placeholder="{{ _('e.g., Insurance Policy 2024') }}"
-                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
             </div>
 
             <div>
                 <label for="document_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Type') }} *</label>
                 <select name="document_type" id="document_type" required
-                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     {% for type_id, type_name in document_types %}
                     <option value="{{ type_id }}" {% if document and document.document_type == type_id %}selected{% endif %}>
                         {{ type_name }}
@@ -69,7 +69,7 @@
                 <input type="text" name="reference_number" id="reference_number"
                        value="{{ document.reference_number if document else '' }}"
                        placeholder="{{ _('e.g., Policy number, certificate ID') }}"
-                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -77,20 +77,20 @@
                     <label for="issue_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Issue Date') }}</label>
                     <input type="text" name="issue_date" id="issue_date" data-datepicker
                            value="{{ document.issue_date.strftime('%Y-%m-%d') if document and document.issue_date else '' }}"
-                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
                 <div>
                     <label for="expiry_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Expiry Date') }}</label>
                     <input type="text" name="expiry_date" id="expiry_date" data-datepicker
                            value="{{ document.expiry_date.strftime('%Y-%m-%d') if document and document.expiry_date else '' }}"
-                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
             </div>
 
             <div>
                 <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Description') }}</label>
                 <textarea name="description" id="description" rows="2"
-                          class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                          class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                           placeholder="{{ _('Optional notes') }}">{{ document.description if document else '' }}</textarea>
             </div>
 
@@ -105,7 +105,7 @@
                 <label for="remind_days" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Days before to remind') }}</label>
                 <input type="number" name="remind_days" id="remind_days"
                        value="{{ document.remind_days if document else 30 }}"
-                       class="mt-1 block w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                       class="mt-1 block w-24 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
             </div>
 
             <div class="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">

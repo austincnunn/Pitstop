@@ -15,7 +15,7 @@
                 <div class="sm:col-span-2">
                     <label for="vehicle_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vehicle *</label>
                     <select name="vehicle_id" id="vehicle_id" required
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         {% for vehicle in vehicles %}
                         <option value="{{ vehicle.id }}"
                                 {% if (expense and expense.vehicle_id == vehicle.id) or (selected_vehicle_id == vehicle.id) %}selected{% endif %}>
@@ -29,13 +29,13 @@
                     <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date *</label>
                     <input type="text" name="date" id="date" required data-datepicker data-default-today
                            value="{{ expense.date.strftime('%Y-%m-%d') if expense else '' }}"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
                     <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category *</label>
                     <select name="category" id="category" required
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         {% for value, label in categories %}
                         <option value="{{ value }}" {% if expense and expense.category == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
@@ -47,21 +47,21 @@
                     <input type="text" name="description" id="description" required
                            value="{{ expense.description if expense else '' }}"
                            placeholder="e.g., Oil change, Annual service"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
                     <label for="cost" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cost ({{ current_user.currency }}) *</label>
                     <input type="number" name="cost" id="cost" required step="0.001"
                            value="{{ expense.cost if expense else '' }}"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
                     <label for="odometer" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Odometer ({{ current_user.distance_unit }})</label>
                     <input type="number" name="odometer" id="odometer" step="0.1"
                            value="{{ expense.odometer if expense else '' }}"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
@@ -69,13 +69,13 @@
                     <input type="text" name="vendor" id="vendor"
                            value="{{ expense.vendor if expense else '' }}"
                            placeholder="e.g., Local Garage"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div class="sm:col-span-2">
                     <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes</label>
                     <textarea name="notes" id="notes" rows="2"
-                              class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ expense.notes if expense else '' }}</textarea>
+                              class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ expense.notes if expense else '' }}</textarea>
                 </div>
 
                 <div class="sm:col-span-2">

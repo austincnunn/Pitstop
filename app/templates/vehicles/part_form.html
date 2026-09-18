@@ -18,7 +18,7 @@
                 <div>
                     <label for="part_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Part Type') }} *</label>
                     <select name="part_type" id="part_type" required
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         {% for value, label in part_types %}
                         <option value="{{ value }}" {% if part and part.part_type == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
@@ -30,7 +30,7 @@
                     <input type="text" name="name" id="name" required
                            value="{{ part.name if part else '' }}"
                            placeholder="e.g., Engine Oil, Oil Filter"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div class="sm:col-span-2">
@@ -38,7 +38,7 @@
                     <input type="text" name="specification" id="specification"
                            value="{{ part.specification if part else '' }}"
                            placeholder="e.g., 10W-40, K&N KN-204, 205/55R16"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Oil viscosity, filter model, tire size, etc.') }}</p>
                 </div>
 
@@ -47,13 +47,13 @@
                     <input type="number" name="quantity" id="quantity" step="0.1"
                            value="{{ part.quantity if part else '' }}"
                            placeholder="e.g., 3.5"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
                     <label for="unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Unit') }}</label>
                     <select name="unit" id="unit"
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <option value="">{{ _('Select unit...') }}</option>
                         <option value="L" {% if part and part.unit == 'L' %}selected{% endif %}>{{ _('Liters (L)') }}</option>
                         <option value="ml" {% if part and part.unit == 'ml' %}selected{% endif %}>{{ _('Milliliters (ml)') }}</option>
@@ -71,7 +71,7 @@
                     <input type="text" name="part_number" id="part_number"
                            value="{{ part.part_number if part else '' }}"
                            placeholder="e.g., OEM or aftermarket part number"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white font-mono focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full font-mono rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div class="sm:col-span-2">
@@ -79,7 +79,7 @@
                     <input type="url" name="supplier_url" id="supplier_url"
                            value="{{ part.supplier_url if part else '' }}"
                            placeholder="https://..."
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Link to purchase this part') }}</p>
                 </div>
 
@@ -87,7 +87,7 @@
                     <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Notes') }}</label>
                     <textarea name="notes" id="notes" rows="3"
                               placeholder="Any additional notes about this part..."
-                              class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ part.notes if part and part.notes else '' }}</textarea>
+                              class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ part.notes if part and part.notes else '' }}</textarea>
                 </div>
             </div>
         </div>

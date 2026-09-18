@@ -19,7 +19,7 @@
 <!-- Filter by vehicle -->
 <div class="mb-4">
     <select onchange="window.location.href='?vehicle=' + this.value"
-            class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+            class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
         <option value="">{{ _('All Vehicles') }}</option>
         {% for vehicle in vehicles %}
         <option value="{{ vehicle.id }}" {% if vehicle_filter and vehicle_filter|int == vehicle.id %}selected{% endif %}>

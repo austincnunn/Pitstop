@@ -23,7 +23,7 @@
             <div class="mb-4">
                 <label for="date_format" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date Format in CSV</label>
                 <select name="date_format" id="date_format"
-                        class="mt-1 block w-48 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm">
+                        class="mt-1 block w-48 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     <option value="auto">Auto-detect</option>
                     <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                     <option value="MM/DD/YYYY">MM/DD/YYYY</option>
@@ -52,7 +52,7 @@
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">{{ col }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ sample_data.get(col, '') }}</td>
                             <td class="px-4 py-3">
-                                <select name="mapping_{{ loop.index0 }}" data-csv-col="{{ col }}" class="column-mapping block w-full rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                <select name="mapping_{{ loop.index0 }}" data-csv-col="{{ col }}" class="column-mapping block w-full px-2 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                     <option value="">-- Skip --</option>
                                     {% for field in target_fields %}
                                     <option value="{{ field.name }}" {% if suggestions.get(col) == field.name %}selected{% endif %}>

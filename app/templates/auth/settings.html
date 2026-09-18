@@ -104,7 +104,7 @@
                                 <div>
                                     <label for="language" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Language') }}</label>
                                     <select name="language" id="language"
-                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         {% for code, name in LANGUAGES.items() %}
                                         <option value="{{ code }}" {% if current_user.language == code %}selected{% endif %}>{{ name }}</option>
                                         {% endfor %}
@@ -114,7 +114,7 @@
                                 <div>
                                     <label for="date_format" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Date Format') }}</label>
                                     <select name="date_format" id="date_format"
-                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <option value="DD/MM/YYYY" {% if current_user.date_format == 'DD/MM/YYYY' %}selected{% endif %}>DD/MM/YYYY (15/01/2024)</option>
                                         <option value="MM/DD/YYYY" {% if current_user.date_format == 'MM/DD/YYYY' %}selected{% endif %}>MM/DD/YYYY (01/15/2024)</option>
                                         <option value="YYYY-MM-DD" {% if current_user.date_format == 'YYYY-MM-DD' %}selected{% endif %}>YYYY-MM-DD (2024-01-15)</option>
@@ -125,7 +125,7 @@
                                 <div>
                                     <label for="unit_system" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Unit System') }}</label>
                                     <select name="unit_system" id="unit_system"
-                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <option value="imperial" {% if current_user.unit_system == 'imperial' %}selected{% endif %}>{{ _('Imperial (miles, US gallons, MPG)') }}</option>
                                         <option value="metric" {% if current_user.unit_system == 'metric' %}selected{% endif %}>{{ _('Metric (km, liters, L/100km)') }}</option>
                                         <option value="british" {% if current_user.unit_system == 'british' %}selected{% endif %}>{{ _('British (just for fun \U0001F1EC\U0001F1E7)') }}</option>
@@ -140,7 +140,7 @@
                                 <div>
                                     <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Currency') }}</label>
                                     <select name="currency" id="currency"
-                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <option value="USD" {% if current_user.currency == 'USD' %}selected{% endif %}>USD ($)</option>
                                         <option value="EUR" {% if current_user.currency == 'EUR' %}selected{% endif %}>EUR (&euro;)</option>
                                         <option value="GBP" {% if current_user.currency == 'GBP' %}selected{% endif %}>GBP (&pound;)</option>
@@ -164,7 +164,7 @@
                                         <input type="text" name="custom_currency" id="custom_currency"
                                                value="{% if is_custom_currency %}{{ current_user.currency }}{% endif %}"
                                                placeholder="{{ _('e.g. ZAR, R, CHF') }}"
-                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Enter a currency code or symbol to display') }}</p>
                                     </div>
                                 </div>
@@ -194,12 +194,12 @@
                                 <div>
                                     <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Username') }}</label>
                                     <input type="text" name="username" id="username" value="{{ current_user.username }}" maxlength="64" required
-                                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                 </div>
                                 <div>
                                     <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Email') }}</label>
                                     <input type="email" name="email" id="email" value="{{ current_user.email }}"
-                                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Member Since') }}</label>
@@ -324,13 +324,13 @@
                                     <div>
                                         <label for="new_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('New Password') }}</label>
                                         <input type="password" name="new_password" id="new_password"
-                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                     </div>
 
                                     <div>
                                         <label for="confirm_new_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Confirm New Password') }}</label>
                                         <input type="password" name="confirm_new_password" id="confirm_new_password"
-                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                     </div>
                                 </div>
                             </div>
@@ -383,7 +383,7 @@
                                 <label for="start_page" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Start Page') }}</label>
                                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ _('Which page to show when you log in') }}</p>
                                 <select name="start_page" id="start_page"
-                                        class="block w-full sm:w-64 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                        class="block w-full sm:w-64 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                     <option value="dashboard" {% if current_user.start_page == 'dashboard' or not current_user.start_page %}selected{% endif %}>{{ _('Dashboard') }}</option>
                                     <option value="vehicles" {% if current_user.start_page == 'vehicles' %}selected{% endif %}>{{ _('Vehicles') }}</option>
                                     <option value="fuel" {% if current_user.start_page == 'fuel' %}selected{% endif %}>{{ _('Fuel Logs') }}</option>
@@ -659,7 +659,7 @@
                                     <div class="min-w-[160px]">
                                         <label for="backup_frequency" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Frequency') }}</label>
                                         <select name="backup_frequency" id="backup_frequency"
-                                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                                                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                             <option value="daily"   {% if backup_settings.backup_frequency == 'daily'   %}selected{% endif %}>{{ _('Daily') }}</option>
                                             <option value="weekly"  {% if backup_settings.backup_frequency == 'weekly'  %}selected{% endif %}>{{ _('Weekly (Monday)') }}</option>
                                             <option value="monthly" {% if backup_settings.backup_frequency == 'monthly' %}selected{% endif %}>{{ _('Monthly (1st)') }}</option>
@@ -668,7 +668,7 @@
                                     <div class="min-w-[160px]">
                                         <label for="backup_hour" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Run at (UTC hour)') }}</label>
                                         <select name="backup_hour" id="backup_hour"
-                                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                                                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                             {% for h in range(24) %}
                                             <option value="{{ h }}" {% if backup_settings.backup_hour == h %}selected{% endif %}>{{ '%02d:00 UTC' % h }}</option>
                                             {% endfor %}
@@ -678,7 +678,7 @@
                                         <label for="backup_retention" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Keep last N') }}</label>
                                         <input type="number" name="backup_retention" id="backup_retention"
                                                value="{{ backup_settings.backup_retention }}" min="1" max="365"
-                                               class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-3">
@@ -1167,7 +1167,7 @@
                                             <input type="password" name="dvla_api_key" id="dvla_api_key"
                                                    value="{{ dvla_settings.api_key or '' }}"
                                                    placeholder="Enter your DVLA VES API key"
-                                                   class="flex-1 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                                   class="flex-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                             <button type="button" onclick="testDvlaKey()"
                                                     class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                                 {{ _('Test') }}
@@ -1247,7 +1247,7 @@
                                             <input type="password" name="tessie_api_token" id="tessie_api_token"
                                                    value="{{ tessie_settings.api_token or '' }}"
                                                    placeholder="Enter your Tessie API token"
-                                                   class="flex-1 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                                   class="flex-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                             <button type="button" onclick="testTessieToken()"
                                                     class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                                 {{ _('Test') }}
@@ -1302,7 +1302,7 @@
                                     <label for="reminder_days_before" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Default Reminder Lead Time') }}</label>
                                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ _('How many days before the due date should you be notified?') }}</p>
                                     <select name="reminder_days_before" id="reminder_days_before"
-                                            class="block w-full sm:w-48 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                            class="block w-full sm:w-48 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <option value="0" {% if current_user.reminder_days_before == 0 %}selected{% endif %}>{{ _('On the due date') }}</option>
                                         <option value="1" {% if current_user.reminder_days_before == 1 %}selected{% endif %}>{{ _('1 day before') }}</option>
                                         <option value="3" {% if current_user.reminder_days_before == 3 %}selected{% endif %}>{{ _('3 days before') }}</option>
@@ -1318,7 +1318,7 @@
                                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ _('Choose how you want to receive notifications') }}</p>
                                     <select name="notification_method" id="notification_method"
                                             onchange="toggleNotificationFields()"
-                                            class="block w-full sm:w-64 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                            class="block w-full sm:w-64 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <option value="email" {% if current_user.notification_method == 'email' or not current_user.notification_method %}selected{% endif %} {% if not smtp_configured %}disabled{% endif %}>
                                             {{ _('Email') }}{% if not smtp_configured %} ({{ _('not configured') }}){% endif %}
                                         </option>
@@ -1359,7 +1359,7 @@
                                         <input type="text" name="ntfy_topic" id="ntfy_topic"
                                                value="{{ current_user.ntfy_topic or '' }}"
                                                placeholder="my-vehicle-reminders or https://ntfy.example.com/topic"
-                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('For ntfy.sh, just enter your topic name. For self-hosted, enter the full URL.') }}</p>
                                     </div>
                                 </div>
@@ -1375,7 +1375,7 @@
                                         <input type="text" name="pushover_user_key" id="pushover_user_key"
                                                value="{{ current_user.pushover_user_key or '' }}"
                                                placeholder="uQiRzpo4DXghDmr9QzzfQu27cmVRsG"
-                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Find your User Key on your Pushover dashboard.') }}</p>
                                     </div>
                                 </div>
@@ -1390,7 +1390,7 @@
                                         <input type="url" name="webhook_url" id="webhook_url"
                                                value="{{ current_user.webhook_url or '' }}"
                                                placeholder="https://example.com/webhook"
-                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                               class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('JSON payload: {title, message, reminder_id, vehicle_name, due_date}') }}</p>
                                     </div>
                                 </div>
@@ -1458,42 +1458,42 @@
                                             <input type="text" name="smtp_host" id="smtp_host"
                                                    value="{{ smtp_settings.host or '' }}"
                                                    placeholder="smtp.gmail.com"
-                                                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                                   class="mt-1 block w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         </div>
                                         <div>
                                             <label for="smtp_port" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('SMTP Port') }}</label>
                                             <input type="number" name="smtp_port" id="smtp_port"
                                                    value="{{ smtp_settings.port or '587' }}"
                                                    placeholder="587"
-                                                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                                   class="mt-1 block w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         </div>
                                         <div>
                                             <label for="smtp_username" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('SMTP Username') }}</label>
                                             <input type="text" name="smtp_username" id="smtp_username"
                                                    value="{{ smtp_settings.username or '' }}"
                                                    placeholder="your-email@gmail.com"
-                                                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                                   class="mt-1 block w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         </div>
                                         <div>
                                             <label for="smtp_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('SMTP Password') }}</label>
                                             <input type="password" name="smtp_password" id="smtp_password"
                                                    value="{{ smtp_settings.password or '' }}"
                                                    placeholder="{% if smtp_settings.password %}••••••••{% else %}App password{% endif %}"
-                                                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                                   class="mt-1 block w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         </div>
                                         <div>
                                             <label for="smtp_sender" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Sender Email') }}</label>
                                             <input type="email" name="smtp_sender" id="smtp_sender"
                                                    value="{{ smtp_settings.sender or '' }}"
                                                    placeholder="noreply@example.com"
-                                                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                                   class="mt-1 block w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         </div>
                                         <div>
                                             <label for="smtp_sender_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Sender Name') }}</label>
                                             <input type="text" name="smtp_sender_name" id="smtp_sender_name"
                                                    value="{{ smtp_settings.sender_name or '' }}"
                                                    placeholder="{{ APP_NAME }}"
-                                                   class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                                   class="mt-1 block w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         </div>
                                     </div>
 
@@ -1543,7 +1543,7 @@
                                         <input type="text" name="pushover_app_token" id="pushover_app_token"
                                                value="{{ smtp_settings.pushover_app_token or '' }}"
                                                placeholder="azGDORePK8gMaC0QOYAMyEEuzJnyUi"
-                                               class="mt-1 block w-full sm:w-96 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                               class="mt-1 block w-full sm:w-96 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Create an application at pushover.net to get your token') }}</p>
                                     </div>
                                 </div>
@@ -1625,7 +1625,7 @@
                                     <input type="text" name="app_name" id="app_name"
                                            value="{{ branding.app_name or 'Pitstop' }}"
                                            placeholder="Pitstop"
-                                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                 </div>
 
                                 <div class="sm:col-span-2">
@@ -1633,7 +1633,7 @@
                                     <input type="text" name="app_tagline" id="app_tagline"
                                            value="{{ branding.app_tagline or 'Maintenance Tracker' }}"
                                            placeholder="Maintenance Tracker"
-                                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                 </div>
 
                                 <div>

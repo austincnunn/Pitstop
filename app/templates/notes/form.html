@@ -23,7 +23,7 @@
                 <div>
                     <label for="vehicle_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Vehicle') }} *</label>
                     <select name="vehicle_id" id="vehicle_id" required
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <option value="" disabled {% if not selected_vehicle %}selected{% endif %}>{{ _('Select a vehicle') }}</option>
                         {% for vehicle in vehicles %}
                         <option value="{{ vehicle.id }}" {% if selected_vehicle and selected_vehicle.id == vehicle.id %}selected{% endif %}>
@@ -38,7 +38,7 @@
                     <input type="text" name="title" id="title" required
                            value="{{ title }}"
                            placeholder="{{ _('e.g., Service reminders, Modification plans') }}"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>

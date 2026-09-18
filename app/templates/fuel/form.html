@@ -16,7 +16,7 @@
                     <label for="vehicle_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vehicle *</label>
                     <select name="vehicle_id" id="vehicle_id" required
                             onchange="updateVehicleOdometer(this.value)"
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         {% for vehicle in vehicles %}
                         <option value="{{ vehicle.id }}"
                                 {% if (log and log.vehicle_id == vehicle.id) or (selected_vehicle_id == vehicle.id) %}selected{% endif %}
@@ -36,7 +36,7 @@
                     <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date *</label>
                     <input type="text" name="date" id="date" required data-datepicker data-default-today
                            value="{{ log.date.strftime('%Y-%m-%d') if log else '' }}"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
@@ -51,7 +51,7 @@
                     </label>
                     <input type="number" name="odometer" id="odometer" required step="0.1"
                            value="{{ log.odometer if log else '' }}"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     <p id="tessie-odometer-note" class="hidden mt-1 text-xs text-green-600 dark:text-green-400">
                         Odometer is automatically tracked via Tessie for this vehicle.
                     </p>
@@ -62,7 +62,7 @@
                     <input type="number" name="volume" id="volume" step="0.001"
                            value="{{ log.volume if log else '' }}"
                            onchange="calculateTotal()"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
@@ -70,20 +70,20 @@
                     <input type="number" name="price_per_unit" id="price_per_unit" step="0.001"
                            value="{{ log.price_per_unit if log else '' }}"
                            onchange="calculateTotal()"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
                     <label for="total_cost" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Total Cost ({{ current_user.currency }})</label>
                     <input type="number" name="total_cost" id="total_cost" step="0.001"
                            value="{{ log.total_cost if log else '' }}"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
 
                 <div>
                     <label for="fuel_grade" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Fuel Type') }} *</label>
                     <select name="fuel_grade" id="fuel_grade" required
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <option value="" disabled {% if not log %}selected{% endif %}>{{ _('Select fuel type') }}</option>
                         {% for value, label in fuel_grades %}
                         <option value="{{ value }}" {% if log and log.fuel_grade == value %}selected{% endif %}>{{ label }}</option>
@@ -95,7 +95,7 @@
                     <label for="station_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Station') }}</label>
                     {% if stations %}
                     <select name="station_id" id="station_id" onchange="updateStationName(this)"
-                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                         <option value="">{{ _('Select station or enter manually...') }}</option>
                         {% for station in stations %}
                         <option value="{{ station.id }}" data-name="{{ station.name }}{% if station.brand %} ({{ station.brand }}){% endif %}">
@@ -108,7 +108,7 @@
                     <input type="text" name="station" id="station"
                            value="{{ log.station if log else '' }}"
                            placeholder="{{ _('e.g., Shell, BP') }}"
-                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     {% if not stations %}
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         <a href="{{ url_for('stations.new') }}" class="text-primary-600 hover:text-primary-500">{{ _('Add saved stations') }}</a> {{ _('for quick selection and price tracking') }}
@@ -135,7 +135,7 @@
                 <div class="sm:col-span-2">
                     <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes</label>
                     <textarea name="notes" id="notes" rows="2"
-                              class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ log.notes if log else '' }}</textarea>
+                              class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ log.notes if log else '' }}</textarea>
                 </div>
 
                 <div class="sm:col-span-2">

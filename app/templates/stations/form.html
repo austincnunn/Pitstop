@@ -21,7 +21,7 @@
                 <input type="text" name="name" id="name" required
                        value="{{ station.name if station else '' }}"
                        placeholder="{{ _('e.g., Shell Main Street') }}"
-                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
             </div>
 
             <div>
@@ -30,7 +30,7 @@
                        value="{{ station.brand if station else '' }}"
                        placeholder="{{ _('e.g., Shell, BP, Esso') }}"
                        list="brand-list"
-                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 <datalist id="brand-list">
                     <option value="Shell">
                     <option value="BP">
@@ -52,7 +52,7 @@
                 <input type="text" name="address" id="address"
                        value="{{ station.address if station else '' }}"
                        placeholder="{{ _('Street address') }}"
-                       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                       class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -60,20 +60,20 @@
                     <label for="city" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('City') }}</label>
                     <input type="text" name="city" id="city"
                            value="{{ station.city if station else '' }}"
-                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
                 <div>
                     <label for="postcode" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Postcode') }}</label>
                     <input type="text" name="postcode" id="postcode"
                            value="{{ station.postcode if station else '' }}"
-                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                           class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 </div>
             </div>
 
             <div>
                 <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Notes') }}</label>
                 <textarea name="notes" id="notes" rows="2"
-                          class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                          class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                           placeholder="{{ _('e.g., Good prices, open 24h') }}">{{ station.notes if station else '' }}</textarea>
             </div>
 

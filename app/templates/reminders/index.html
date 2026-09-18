@@ -23,7 +23,7 @@
     <form method="GET" class="flex flex-wrap gap-4 items-end">
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vehicle</label>
-            <select name="vehicle" class="block rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+            <select name="vehicle" class="block text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 <option value="">All Vehicles</option>
                 {% for vehicle in vehicles %}
                 <option value="{{ vehicle.id }}" {% if filter_vehicle == vehicle.id %}selected{% endif %}>{{ vehicle.name }}</option>
@@ -32,7 +32,7 @@
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
-            <select name="type" class="block rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+            <select name="type" class="block text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 <option value="">All Types</option>
                 {% for type_id, type_name in reminder_types %}
                 <option value="{{ type_id }}" {% if filter_type == type_id %}selected{% endif %}>{{ type_name }}</option>

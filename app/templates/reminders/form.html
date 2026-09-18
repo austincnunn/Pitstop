@@ -25,7 +25,7 @@
             <div>
                 <label for="vehicle_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vehicle</label>
                 <select name="vehicle_id" id="vehicle_id" required
-                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                        class="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                         {% if reminder %}disabled{% endif %}>
                     {% for vehicle in vehicles %}
                     <option value="{{ vehicle.id }}"
@@ -45,14 +45,14 @@
                 <input type="text" name="title" id="title" required
                        value="{{ reminder.title if reminder else '' }}"
                        placeholder="e.g., MOT Due, Insurance Renewal"
-                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                       class="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
             </div>
 
             <!-- Type -->
             <div>
                 <label for="reminder_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
                 <select name="reminder_type" id="reminder_type" required
-                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        class="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     {% for type_id, type_name in reminder_types %}
                     <option value="{{ type_id }}" {% if reminder and reminder.reminder_type == type_id %}selected{% endif %}>
                         {{ type_name }}
@@ -66,7 +66,7 @@
                 <label for="due_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due Date</label>
                 <input type="text" name="due_date" id="due_date" required data-datepicker
                        value="{{ reminder.due_date.strftime('%Y-%m-%d') if reminder else '' }}"
-                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                       class="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
             </div>
 
             <!-- Description -->
@@ -74,14 +74,14 @@
                 <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (optional)</label>
                 <textarea name="description" id="description" rows="3"
                           placeholder="Additional notes about this reminder"
-                          class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500">{{ reminder.description if reminder else '' }}</textarea>
+                          class="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">{{ reminder.description if reminder else '' }}</textarea>
             </div>
 
             <!-- Recurrence -->
             <div>
                 <label for="recurrence" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recurrence</label>
                 <select name="recurrence" id="recurrence"
-                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        class="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     {% for rec_id, rec_name in recurrence_options %}
                     <option value="{{ rec_id }}" {% if reminder and reminder.recurrence == rec_id %}selected{% endif %}>
                         {{ rec_name }}
@@ -95,7 +95,7 @@
             <div>
                 <label for="notify_days_before" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notify me</label>
                 <select name="notify_days_before" id="notify_days_before"
-                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        class="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
                     <option value="0" {% if reminder and reminder.notify_days_before == 0 %}selected{% endif %}>On the due date</option>
                     <option value="1" {% if reminder and reminder.notify_days_before == 1 %}selected{% endif %}>1 day before</option>
                     <option value="3" {% if reminder and reminder.notify_days_before == 3 %}selected{% endif %}>3 days before</option>
