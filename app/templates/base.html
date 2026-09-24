@@ -340,7 +340,10 @@
                         {% if current_user.show_quick_entry %}
                         <a href="{{ url_for('fuel.quick') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md shadow-sm" title="{{ _('Quick Fuel Entry') }}">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 21l14 0"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 21v-16a1 1 0 0 1 1 -1h7a1 1 0 0 1 1 1v16"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 8h2a1 1 0 0 1 1 1v8.5a1.5 1.5 0 0 0 3 0v-9.5c0 -1 -1 -2 -2 -2l-2 -2"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8l6 0"/>
                             </svg>
                             <span>{{ _('Fuel') }}</span>
                         </a>
@@ -362,7 +365,10 @@
                         {% if current_user.show_quick_entry %}
                         <a href="{{ url_for('fuel.quick') }}" class="inline-flex items-center justify-center rounded-md p-2 text-white bg-primary-600 hover:bg-primary-700" title="{{ _('Quick Fuel Entry') }}">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 21l14 0"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 21v-16a1 1 0 0 1 1 -1h7a1 1 0 0 1 1 1v16"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 8h2a1 1 0 0 1 1 1v8.5a1.5 1.5 0 0 0 3 0v-9.5c0 -1 -1 -2 -2 -2l-2 -2"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8l6 0"/>
                             </svg>
                         </a>
                         {% endif %}
