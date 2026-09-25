@@ -20,7 +20,7 @@
 <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
     <ul class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for item in recurring %}
-        <li class="p-4 hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-700 {% if not item.is_active %}opacity-50{% endif %}">
+        <li class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 {% if not item.is_active %}opacity-50{% endif %}">
             <div class="flex items-center justify-between">
                 <div class="flex items-center min-w-0">
                     <div class="flex-shrink-0">
