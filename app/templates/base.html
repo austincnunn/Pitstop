@@ -113,22 +113,25 @@
         Object.entries(primaryPalette).forEach(([key, value]) => {
             rootStyle.setProperty(`--primary-${key}`, value);
         });
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                fontFamily: {
-                    sans: ['ui-sans-serif', 'system-ui', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
-                },
-                extend: {
-                    colors: {
-                        primary: primaryPalette
-                    }
-                }
-            }
-        };
-        window.tailwind.config = tailwind.config;
     </script>
     <script>
+        // Tailwind reads `tailwind.config` from a setter it installs on window.tailwind,
+        // so this must run AFTER the library script below, not before.
+        window.__applyTailwindConfig = function() {
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    fontFamily: {
+                        sans: ['ui-sans-serif', 'system-ui', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+                    },
+                    extend: {
+                        colors: {
+                            primary: primaryPalette
+                        }
+                    }
+                }
+            };
+        };
         window.__loadTailwindFallback = function() {
             if (window.__tailwindFallbackLoaded) {
                 return;
@@ -136,10 +139,12 @@
             window.__tailwindFallbackLoaded = true;
             var fallbackScript = document.createElement('script');
             fallbackScript.src = '{{ TAILWIND_CDN_URL }}';
+            fallbackScript.onload = window.__applyTailwindConfig;
             document.head.appendChild(fallbackScript);
         };
     </script>
     <script src="{{ TAILWIND_ASSET_URL }}" onerror="window.__loadTailwindFallback()"></script>
+    <script>window.__applyTailwindConfig();</script>
     <!-- Flatpickr date picker - CSS with CDN fallback -->
     <link rel="stylesheet" href="{{ FLATPICKR_CSS_ASSET_URL }}" onerror="this.onerror=null;this.href='{{ FLATPICKR_CSS_CDN_URL }}';">
     <!-- Flatpickr JS with CDN fallback -->
