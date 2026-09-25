@@ -148,14 +148,18 @@
                             <div class="p-6">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">{{ _('Dark Mode') }}</h3>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Use dark theme for the interface') }}</p>
+                                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">{{ _('Appearance') }}</h3>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Light, dark, or match your device') }}</p>
                                     </div>
-                                    <button type="button" onclick="toggleDarkMode()"
-                                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 bg-gray-200 dark:bg-primary-600"
-                                            role="switch">
-                                        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out dark:translate-x-5"></span>
-                                    </button>
+                                    <div class="flex rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden">
+                                        {% set current_mode = 'dark' if current_user.dark_mode else ('light' if current_user.dark_mode is not none else 'system') %}
+                                        {% for mode, label in [('light', _('Light')), ('dark', _('Dark')), ('system', _('System'))] %}
+                                        <button type="button" onclick="setDarkMode('{{ mode }}')"
+                                                class="px-3 py-1.5 text-sm font-medium {% if current_mode == mode %}bg-primary-600 text-white{% else %}bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600{% endif %} {% if not loop.first %}border-l border-gray-300 dark:border-gray-600{% endif %}">
+                                            {{ label }}
+                                        </button>
+                                        {% endfor %}
+                                    </div>
                                 </div>
                             </div>
                         </div>

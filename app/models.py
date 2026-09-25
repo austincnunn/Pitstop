@@ -73,7 +73,7 @@ class User(UserMixin, db.Model):
     volume_unit = db.Column(db.String(10), default='us_gal')  # L, gal, us_gal
     consumption_unit = db.Column(db.String(10), default='mpg_us')  # L/100km, mpg, mpg_us
     currency = db.Column(db.String(10), default='USD')
-    dark_mode = db.Column(db.Boolean, default=False)  # Dark mode preference
+    dark_mode = db.Column(db.Boolean, nullable=True, default=None)  # True/False = explicit, None = follow device
     date_format = db.Column(db.String(20), default='MM/DD/YYYY')  # DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD, DD.MM.YYYY
 
     # Notification preferences

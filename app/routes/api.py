@@ -84,8 +84,11 @@ def get_api_user():
 @bp.route('/toggle-dark-mode', methods=['POST'])
 @login_required
 def toggle_dark_mode():
-    """Toggle dark mode for the current user"""
-    current_user.dark_mode = not current_user.dark_mode
+    """Set dark mode preference: 'light', 'dark', or 'system' (follow device)"""
+    mode = (request.get_json(silent=True) or {}).get('mode')
+    if mode not in ('light', 'dark', 'system'):
+        return jsonify({'error': 'Invalid mode'}), 400
+    current_user.dark_mode = {'light': False, 'dark': True, 'system': None}[mode]
     db.session.commit()
     return jsonify({'dark_mode': current_user.dark_mode})
 

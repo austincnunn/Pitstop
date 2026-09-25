@@ -5,24 +5,27 @@ from app.models import User, Vehicle
 
 
 class TestToggleDarkMode:
-    def test_toggle_dark_mode_on(self, auth_client, test_user):
-        initial = test_user.dark_mode
-        resp = auth_client.post('/api/toggle-dark-mode')
+    def test_set_dark_mode_dark(self, auth_client, test_user):
+        resp = auth_client.post('/api/toggle-dark-mode', json={'mode': 'dark'})
         assert resp.status_code == 200
-        data = resp.get_json()
-        assert 'dark_mode' in data
-        assert data['dark_mode'] == (not initial)
+        assert resp.get_json()['dark_mode'] is True
 
-    def test_toggle_dark_mode_twice(self, auth_client, test_user):
-        initial = test_user.dark_mode
-        auth_client.post('/api/toggle-dark-mode')
-        resp = auth_client.post('/api/toggle-dark-mode')
+    def test_set_dark_mode_light(self, auth_client, test_user):
+        resp = auth_client.post('/api/toggle-dark-mode', json={'mode': 'light'})
         assert resp.status_code == 200
-        data = resp.get_json()
-        assert data['dark_mode'] == initial
+        assert resp.get_json()['dark_mode'] is False
+
+    def test_set_dark_mode_system(self, auth_client, test_user):
+        resp = auth_client.post('/api/toggle-dark-mode', json={'mode': 'system'})
+        assert resp.status_code == 200
+        assert resp.get_json()['dark_mode'] is None
+
+    def test_set_dark_mode_invalid(self, auth_client, test_user):
+        resp = auth_client.post('/api/toggle-dark-mode', json={'mode': 'bogus'})
+        assert resp.status_code == 400
 
     def test_toggle_dark_mode_unauthenticated(self, client):
-        resp = client.post('/api/toggle-dark-mode')
+        resp = client.post('/api/toggle-dark-mode', json={'mode': 'dark'})
         assert resp.status_code in (302, 401)
 
 
