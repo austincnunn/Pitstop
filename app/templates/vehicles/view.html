@@ -657,6 +657,11 @@
         {% else %}
         <p class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ _('No fuel logs yet.') }}</p>
         {% endif %}
+        {% if stats.fuel_logs_count > recent_logs|length %}
+        <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
+            <a href="{{ url_for('fuel.index', vehicle_id=vehicle.id) }}" class="text-sm text-primary-600 hover:text-primary-500">{{ _('See more') }} &rarr;</a>
+        </div>
+        {% endif %}
     </div>
 
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg">

@@ -1,6 +1,6 @@
 import pytest
 from app import db
-from app.models import FuelLog
+from app.models import FuelLog, Vehicle
 
 
 class TestFuelIndex:
@@ -16,6 +16,29 @@ class TestFuelIndex:
     def test_index_shows_fuel_logs(self, auth_client, sample_fuel_log):
         resp = auth_client.get('/fuel/')
         assert resp.status_code == 200
+
+    def test_index_filters_by_vehicle_id(self, app, auth_client, test_user, sample_vehicle, sample_fuel_log):
+        other_vehicle = Vehicle(owner_id=test_user.id, name='Other Car', vehicle_type='car', fuel_type='petrol')
+        db.session.add(other_vehicle)
+        db.session.commit()
+        other_log = FuelLog(
+            vehicle_id=other_vehicle.id, user_id=test_user.id,
+            date=sample_fuel_log.date, odometer=5000.0, volume=20.0, is_full_tank=True,
+        )
+        db.session.add(other_log)
+        db.session.commit()
+
+        resp = auth_client.get(f'/fuel/?vehicle_id={sample_vehicle.id}')
+        assert resp.status_code == 200
+        assert b'Test Car' in resp.data
+        # "Other Car" still appears once, in the filter dropdown's own option list
+        assert resp.data.count(b'Other Car') == 1
+
+    def test_index_ignores_vehicle_id_not_owned(self, app, auth_client, sample_fuel_log):
+        # A vehicle_id the user doesn't own falls back to showing all of their logs
+        resp = auth_client.get('/fuel/?vehicle_id=999999')
+        assert resp.status_code == 200
+        assert b'Test Car' in resp.data
 
 
 class TestFuelNew:

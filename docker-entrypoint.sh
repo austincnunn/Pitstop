@@ -30,7 +30,7 @@ fi
 export SECRET_KEY=$(cat "$KEY_FILE")
 
 # Run database migrations as the pitstop user
-gosu pitstop flask db upgrade 2>/dev/null || true
+gosu pitstop flask db upgrade || echo "WARNING: flask db upgrade failed, continuing with existing schema" >&2
 
 # Drop to 'pitstop' user and run the application
 exec gosu pitstop "$@"

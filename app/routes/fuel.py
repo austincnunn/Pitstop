@@ -26,12 +26,18 @@ def index():
     vehicles = current_user.get_all_vehicles()
     vehicle_ids = [v.id for v in vehicles]
 
-    # Get all fuel logs for user's vehicles
-    logs = FuelLog.query.filter(
-        FuelLog.vehicle_id.in_(vehicle_ids)
-    ).order_by(FuelLog.date.desc()).all()
+    filter_vehicle_id = request.args.get('vehicle_id', type=int)
+    if filter_vehicle_id and filter_vehicle_id not in vehicle_ids:
+        filter_vehicle_id = None
 
-    return render_template('fuel/index.html', logs=logs, vehicles=vehicles)
+    # Get fuel logs for user's vehicles, optionally narrowed to one vehicle
+    query = FuelLog.query.filter(FuelLog.vehicle_id.in_(vehicle_ids))
+    if filter_vehicle_id:
+        query = query.filter(FuelLog.vehicle_id == filter_vehicle_id)
+    logs = query.order_by(FuelLog.date.desc()).all()
+
+    return render_template('fuel/index.html', logs=logs, vehicles=vehicles,
+                           filter_vehicle_id=filter_vehicle_id)
 
 
 @bp.route('/new', methods=['GET', 'POST'])
