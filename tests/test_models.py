@@ -255,6 +255,48 @@ class TestFuelLogConsumption:
         db.session.commit()
         assert log.get_consumption() is None
 
+    def test_get_consumption_excluded_returns_none(self, app, test_user, sample_vehicle):
+        log1 = FuelLog(
+            vehicle_id=sample_vehicle.id, user_id=test_user.id,
+            date=date(2024, 1, 1), odometer=10000.0,
+            volume=40.0, is_full_tank=True,
+        )
+        log2 = FuelLog(
+            vehicle_id=sample_vehicle.id, user_id=test_user.id,
+            date=date(2024, 1, 15), odometer=10500.0,
+            volume=5.0, is_full_tank=True, exclude_from_consumption=True,
+        )
+        db.session.add_all([log1, log2])
+        db.session.commit()
+
+        # Own consumption hidden, but excluded entry still has cost/odometer for other stats
+        assert log2.get_consumption() is None
+
+    def test_average_consumption_skips_excluded_log(self, app, test_user, sample_vehicle):
+        log1 = FuelLog(
+            vehicle_id=sample_vehicle.id, user_id=test_user.id,
+            date=date(2024, 1, 1), odometer=10000.0,
+            volume=40.0, is_full_tank=True,
+        )
+        # Bad entry: tiny volume would wildly skew the average if counted
+        log2 = FuelLog(
+            vehicle_id=sample_vehicle.id, user_id=test_user.id,
+            date=date(2024, 1, 10), odometer=10200.0,
+            volume=1.0, is_full_tank=True, exclude_from_consumption=True,
+        )
+        log3 = FuelLog(
+            vehicle_id=sample_vehicle.id, user_id=test_user.id,
+            date=date(2024, 1, 20), odometer=10500.0,
+            volume=35.0, is_full_tank=True,
+        )
+        db.session.add_all([log1, log2, log3])
+        db.session.commit()
+
+        # Only log1 -> log3 counted: (35 / 500) * 100 = 7.0 L/100km
+        avg = sample_vehicle.get_average_consumption()
+        assert avg is not None
+        assert abs(avg - 7.0) < 0.01
+
     def test_fuel_log_to_dict(self, sample_fuel_log):
         d = sample_fuel_log.to_dict()
         assert d['odometer'] == 10000.0

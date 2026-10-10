@@ -103,6 +103,7 @@ def new():
             fuel_grade=fuel_grade,
             is_full_tank=request.form.get('is_full_tank') == 'on',
             is_missed=request.form.get('is_missed') == 'on',
+            exclude_from_consumption=request.form.get('exclude_from_consumption') == 'on',
             station=request.form.get('station'),
             notes=request.form.get('notes')
         )
@@ -195,6 +196,7 @@ def edit(log_id):
         log.fuel_grade = fuel_grade
         log.is_full_tank = request.form.get('is_full_tank') == 'on'
         log.is_missed = request.form.get('is_missed') == 'on'
+        log.exclude_from_consumption = request.form.get('exclude_from_consumption') == 'on'
         log.station = request.form.get('station')
         log.notes = request.form.get('notes')
 

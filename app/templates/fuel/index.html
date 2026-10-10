@@ -52,8 +52,12 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ "%.2f"|format(log.total_cost or 0) }} {{ current_user.currency }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {% if log.exclude_from_consumption %}
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400" title="{{ _('Excluded from MPG calculation') }}">{{ _('Excluded') }}</span>
+                        {% else %}
                         {% set consumption = log.get_consumption(current_user.consumption_unit) %}
                         {% if consumption %}{{ consumption|format_consumption(current_user) }}{% else %}-{% endif %}
+                        {% endif %}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <a href="{{ url_for('fuel.edit', log_id=log.id) }}" class="text-primary-600 hover:text-primary-900 mr-3">Edit</a>

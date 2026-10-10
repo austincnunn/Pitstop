@@ -347,7 +347,7 @@ class Vehicle(db.Model):
         Args:
             consumption_unit: 'L/100km', 'mpg', or 'mpg_us'. If None, returns L/100km.
         """
-        logs = self.fuel_logs.filter_by(is_full_tank=True).order_by(FuelLog.odometer).all()
+        logs = self.fuel_logs.filter_by(is_full_tank=True, exclude_from_consumption=False).order_by(FuelLog.odometer).all()
         if len(logs) < 2:
             return None
 
@@ -458,6 +458,7 @@ class FuelLog(db.Model):
 
     is_full_tank = db.Column(db.Boolean, default=True)
     is_missed = db.Column(db.Boolean, default=False)  # missed fill-up flag
+    exclude_from_consumption = db.Column(db.Boolean, default=False)  # bad data entry; still counts for cost/mileage
 
     station = db.Column(db.String(100))
     notes = db.Column(db.Text)
@@ -474,7 +475,7 @@ class FuelLog(db.Model):
         Args:
             consumption_unit: 'L/100km', 'mpg', or 'mpg_us'. If None, returns L/100km.
         """
-        if not self.is_full_tank or not self.volume:
+        if not self.is_full_tank or not self.volume or self.exclude_from_consumption:
             return None
 
         prev_log = FuelLog.query.filter(
@@ -505,6 +506,7 @@ class FuelLog(db.Model):
             'fuel_grade': self.fuel_grade,
             'is_full_tank': self.is_full_tank,
             'is_missed': self.is_missed,
+            'exclude_from_consumption': self.exclude_from_consumption,
             'station': self.station,
             'notes': self.notes,
             'consumption': round(consumption, 2) if consumption else None,

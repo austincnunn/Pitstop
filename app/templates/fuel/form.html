@@ -130,6 +130,13 @@
                                class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
                         <label for="is_missed" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Missed fill-up (incomplete data)</label>
                     </div>
+
+                    <div class="flex items-center">
+                        <input type="checkbox" name="exclude_from_consumption" id="exclude_from_consumption"
+                               {% if log and log.exclude_from_consumption %}checked{% endif %}
+                               class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                        <label for="exclude_from_consumption" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">{{ _('Exclude from MPG calculation') }}</label>
+                    </div>
                 </div>
 
                 <div class="sm:col-span-2">
