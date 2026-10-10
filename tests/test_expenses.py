@@ -1,6 +1,6 @@
 import pytest
 from app import db
-from app.models import Expense
+from app.models import Expense, Vehicle
 
 
 class TestExpenseIndex:
@@ -16,6 +16,27 @@ class TestExpenseIndex:
     def test_index_shows_expenses(self, auth_client, sample_expense):
         resp = auth_client.get('/expenses/')
         assert resp.status_code == 200
+
+    def test_index_filters_by_vehicle_id(self, app, auth_client, test_user, sample_vehicle, sample_expense):
+        other_vehicle = Vehicle(owner_id=test_user.id, name='Other Car', vehicle_type='car', fuel_type='petrol')
+        db.session.add(other_vehicle)
+        db.session.commit()
+        other_expense = Expense(
+            vehicle_id=other_vehicle.id, user_id=test_user.id,
+            date=sample_expense.date, category='maintenance', description='Oil change', cost=50.0,
+        )
+        db.session.add(other_expense)
+        db.session.commit()
+
+        resp = auth_client.get(f'/expenses/?vehicle_id={sample_vehicle.id}')
+        assert resp.status_code == 200
+        assert b'Test Car' in resp.data
+        assert resp.data.count(b'Other Car') == 1
+
+    def test_index_ignores_vehicle_id_not_owned(self, app, auth_client, sample_expense):
+        resp = auth_client.get('/expenses/?vehicle_id=999999')
+        assert resp.status_code == 200
+        assert b'Test Car' in resp.data
 
 
 class TestExpenseNew:

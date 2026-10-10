@@ -54,6 +54,62 @@ class TestExportCsv:
             assert 'Test Car' in vehicles_csv
 
 
+class TestExportCsvCustom:
+    def test_requires_auth(self, client):
+        resp = client.get('/api/export/csv/custom?types=fuel_logs')
+        assert resp.status_code in (302, 401)
+
+    def test_no_types_selected_redirects(self, auth_client):
+        resp = auth_client.get('/api/export/csv/custom', follow_redirects=False)
+        assert resp.status_code == 302
+
+    def test_single_type_returns_plain_csv(self, auth_client, sample_fuel_log):
+        resp = auth_client.get('/api/export/csv/custom?types=fuel_logs')
+        assert resp.status_code == 200
+        assert resp.content_type.startswith('text/csv')
+        assert b'odometer' in resp.data
+
+    def test_multiple_types_returns_zip(self, auth_client, sample_fuel_log, sample_expense):
+        resp = auth_client.get('/api/export/csv/custom?types=fuel_logs&types=expenses')
+        assert resp.status_code == 200
+        buf = io.BytesIO(resp.data)
+        assert zipfile.is_zipfile(buf)
+        with zipfile.ZipFile(buf) as zf:
+            names = zf.namelist()
+            assert 'fuel_logs.csv' in names
+            assert 'expenses.csv' in names
+            assert 'vehicles.csv' not in names
+
+    def test_invalid_type_ignored(self, auth_client, sample_fuel_log):
+        resp = auth_client.get('/api/export/csv/custom?types=fuel_logs&types=not_a_real_type')
+        assert resp.status_code == 200
+        assert resp.content_type.startswith('text/csv')
+
+    def test_vehicle_filter_scopes_results(self, auth_client, test_user, sample_vehicle, sample_fuel_log):
+        from app import db
+        from app.models import Vehicle, FuelLog
+
+        other_vehicle = Vehicle(owner_id=test_user.id, name='Other Car', vehicle_type='car', fuel_type='petrol')
+        db.session.add(other_vehicle)
+        db.session.commit()
+        other_log = FuelLog(
+            vehicle_id=other_vehicle.id, user_id=test_user.id,
+            date=sample_fuel_log.date, odometer=5000.0, volume=20.0, is_full_tank=True,
+        )
+        db.session.add(other_log)
+        db.session.commit()
+
+        resp = auth_client.get(f'/api/export/csv/custom?types=fuel_logs&vehicle_id={sample_vehicle.id}')
+        assert resp.status_code == 200
+        text = resp.data.decode('utf-8')
+        assert 'Test Car' in text
+        assert 'Other Car' not in text
+
+    def test_vehicle_id_not_owned_denied(self, auth_client, sample_fuel_log):
+        resp = auth_client.get('/api/export/csv/custom?types=fuel_logs&vehicle_id=999999', follow_redirects=False)
+        assert resp.status_code == 302
+
+
 class TestExportJson:
     def test_export_json_requires_auth(self, client):
         resp = client.get('/api/export/json')

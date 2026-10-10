@@ -1134,276 +1134,301 @@ def import_tessie_charges(vehicle_id):
 # Data Export (Web UI routes, session-authenticated)
 # =============================================================================
 
+def _csv_vehicles(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'name', 'vehicle_type', 'make', 'model', 'year',
+        'registration', 'vin', 'fuel_type', 'tank_capacity',
+        'is_active', 'notes', 'created_at'
+    ])
+    for vehicle in vehicles:
+        writer.writerow([
+            vehicle.id, vehicle.name, vehicle.vehicle_type,
+            vehicle.make, vehicle.model, vehicle.year,
+            vehicle.registration, vehicle.vin, vehicle.fuel_type,
+            vehicle.tank_capacity, vehicle.is_active, vehicle.notes,
+            vehicle.created_at.isoformat() if vehicle.created_at else ''
+        ])
+    return out.getvalue()
+
+
+def _csv_vehicle_specs(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(['vehicle_id', 'vehicle_name', 'spec_type', 'label', 'value'])
+    for vehicle in vehicles:
+        for spec in vehicle.specs.all():
+            writer.writerow([vehicle.id, vehicle.name, spec.spec_type, spec.label, spec.value])
+    return out.getvalue()
+
+
+def _csv_fuel_logs(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'vehicle_id', 'vehicle_name', 'date', 'odometer',
+        'volume', 'price_per_unit', 'total_cost', 'fuel_grade', 'is_full_tank',
+        'is_missed', 'exclude_from_consumption', 'station', 'notes', 'created_at'
+    ])
+    for vehicle in vehicles:
+        for log in vehicle.fuel_logs.order_by(FuelLog.date.desc()).all():
+            writer.writerow([
+                log.id, vehicle.id, vehicle.name, log.date.isoformat(),
+                log.odometer, log.volume, log.price_per_unit, log.total_cost,
+                log.fuel_grade, log.is_full_tank, log.is_missed, log.exclude_from_consumption,
+                log.station, log.notes,
+                log.created_at.isoformat() if log.created_at else ''
+            ])
+    return out.getvalue()
+
+
+def _csv_expenses(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'vehicle_id', 'vehicle_name', 'date', 'category',
+        'description', 'cost', 'odometer', 'vendor', 'notes', 'created_at'
+    ])
+    for vehicle in vehicles:
+        for expense in vehicle.expenses.order_by(Expense.date.desc()).all():
+            writer.writerow([
+                expense.id, vehicle.id, vehicle.name, expense.date.isoformat(),
+                expense.category, expense.description, expense.cost,
+                expense.odometer, expense.vendor, expense.notes,
+                expense.created_at.isoformat() if expense.created_at else ''
+            ])
+    return out.getvalue()
+
+
+def _csv_reminders(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'vehicle_id', 'vehicle_name', 'title', 'description', 'reminder_type',
+        'due_date', 'recurrence', 'recurrence_interval', 'notify_days_before',
+        'is_completed', 'completed_at', 'created_at'
+    ])
+    for vehicle in vehicles:
+        for reminder in vehicle.reminders.all():
+            writer.writerow([
+                reminder.id, vehicle.id, vehicle.name, reminder.title,
+                reminder.description, reminder.reminder_type,
+                reminder.due_date.isoformat() if reminder.due_date else '',
+                reminder.recurrence, reminder.recurrence_interval, reminder.notify_days_before,
+                reminder.is_completed,
+                reminder.completed_at.isoformat() if reminder.completed_at else '',
+                reminder.created_at.isoformat() if reminder.created_at else ''
+            ])
+    return out.getvalue()
+
+
+def _csv_maintenance_schedules(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'vehicle_id', 'vehicle_name', 'name', 'maintenance_type', 'description',
+        'interval_miles', 'interval_km', 'interval_months',
+        'last_performed_date', 'last_performed_odometer',
+        'next_due_date', 'next_due_odometer', 'estimated_cost',
+        'auto_remind', 'is_active', 'created_at'
+    ])
+    for vehicle in vehicles:
+        for schedule in vehicle.maintenance_schedules.all():
+            writer.writerow([
+                schedule.id, vehicle.id, vehicle.name, schedule.name,
+                schedule.maintenance_type, schedule.description,
+                schedule.interval_miles, schedule.interval_km, schedule.interval_months,
+                schedule.last_performed_date.isoformat() if schedule.last_performed_date else '',
+                schedule.last_performed_odometer,
+                schedule.next_due_date.isoformat() if schedule.next_due_date else '',
+                schedule.next_due_odometer, schedule.estimated_cost,
+                schedule.auto_remind, schedule.is_active,
+                schedule.created_at.isoformat() if schedule.created_at else ''
+            ])
+    return out.getvalue()
+
+
+def _csv_recurring_expenses(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'vehicle_id', 'vehicle_name', 'name', 'category', 'description',
+        'amount', 'vendor', 'frequency', 'start_date', 'end_date',
+        'last_generated', 'next_due', 'auto_create', 'is_active', 'created_at'
+    ])
+    for vehicle in vehicles:
+        for recurring in vehicle.recurring_expenses.all():
+            writer.writerow([
+                recurring.id, vehicle.id, vehicle.name, recurring.name,
+                recurring.category, recurring.description, recurring.amount,
+                recurring.vendor, recurring.frequency,
+                recurring.start_date.isoformat() if recurring.start_date else '',
+                recurring.end_date.isoformat() if recurring.end_date else '',
+                recurring.last_generated.isoformat() if recurring.last_generated else '',
+                recurring.next_due.isoformat() if recurring.next_due else '',
+                recurring.auto_create, recurring.is_active,
+                recurring.created_at.isoformat() if recurring.created_at else ''
+            ])
+    return out.getvalue()
+
+
+def _csv_documents(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'vehicle_id', 'vehicle_name', 'title', 'document_type', 'description',
+        'original_filename', 'file_type', 'file_size',
+        'issue_date', 'expiry_date', 'reference_number', 'created_at'
+    ])
+    for vehicle in vehicles:
+        for doc in vehicle.documents.all():
+            writer.writerow([
+                doc.id, vehicle.id, vehicle.name, doc.title,
+                doc.document_type, doc.description,
+                doc.original_filename, doc.file_type, doc.file_size,
+                doc.issue_date.isoformat() if doc.issue_date else '',
+                doc.expiry_date.isoformat() if doc.expiry_date else '',
+                doc.reference_number,
+                doc.created_at.isoformat() if doc.created_at else ''
+            ])
+    return out.getvalue()
+
+
+def _csv_trips(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'vehicle_id', 'vehicle_name', 'date', 'start_odometer', 'end_odometer',
+        'distance', 'purpose', 'description', 'start_location', 'end_location',
+        'notes', 'created_at'
+    ])
+    for vehicle in vehicles:
+        for trip in vehicle.trips.order_by(Trip.date.desc()).all():
+            writer.writerow([
+                trip.id, vehicle.id, vehicle.name,
+                trip.date.isoformat() if trip.date else '',
+                trip.start_odometer, trip.end_odometer, trip.distance,
+                trip.purpose, trip.description,
+                trip.start_location, trip.end_location,
+                trip.notes,
+                trip.created_at.isoformat() if trip.created_at else ''
+            ])
+    return out.getvalue()
+
+
+def _csv_charging_sessions(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'vehicle_id', 'vehicle_name', 'date', 'start_time', 'end_time',
+        'odometer', 'kwh_added', 'start_soc', 'end_soc',
+        'cost_per_kwh', 'total_cost', 'charger_type', 'location', 'network',
+        'notes', 'created_at'
+    ])
+    for vehicle in vehicles:
+        for session in vehicle.charging_sessions.order_by(ChargingSession.date.desc()).all():
+            writer.writerow([
+                session.id, vehicle.id, vehicle.name,
+                session.date.isoformat() if session.date else '',
+                session.start_time.isoformat() if session.start_time else '',
+                session.end_time.isoformat() if session.end_time else '',
+                session.odometer, session.kwh_added, session.start_soc, session.end_soc,
+                session.cost_per_kwh, session.total_cost,
+                session.charger_type, session.location, session.network,
+                session.notes,
+                session.created_at.isoformat() if session.created_at else ''
+            ])
+    return out.getvalue()
+
+
+def _csv_vehicle_parts(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'vehicle_id', 'vehicle_name', 'name', 'part_type', 'specification',
+        'quantity', 'unit', 'part_number', 'supplier_url', 'notes', 'created_at'
+    ])
+    for vehicle in vehicles:
+        for part in vehicle.parts.all():
+            writer.writerow([
+                part.id, vehicle.id, vehicle.name, part.name,
+                part.part_type, part.specification,
+                part.quantity, part.unit, part.part_number,
+                part.supplier_url, part.notes,
+                part.created_at.isoformat() if part.created_at else ''
+            ])
+    return out.getvalue()
+
+
+def _csv_fuel_stations(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow([
+        'id', 'name', 'brand', 'address', 'city', 'postcode',
+        'latitude', 'longitude', 'notes', 'is_favorite',
+        'times_used', 'last_used', 'created_at'
+    ])
+    for station in current_user.fuel_stations.all():
+        writer.writerow([
+            station.id, station.name, station.brand,
+            station.address, station.city, station.postcode,
+            station.latitude, station.longitude,
+            station.notes, station.is_favorite,
+            station.times_used,
+            station.last_used.isoformat() if station.last_used else '',
+            station.created_at.isoformat() if station.created_at else ''
+        ])
+    return out.getvalue()
+
+
+def _csv_fuel_price_history(vehicles):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(['id', 'station_id', 'station_name', 'date', 'fuel_type', 'price_per_unit', 'created_at'])
+    for station in current_user.fuel_stations.all():
+        for price in station.price_history.all():
+            writer.writerow([
+                price.id, station.id, station.name,
+                price.date.isoformat() if price.date else '',
+                price.fuel_type, price.price_per_unit,
+                price.created_at.isoformat() if price.created_at else ''
+            ])
+    return out.getvalue()
+
+
+# Registry of exportable CSV data types, in display/zip order. 'vehicle_scoped'
+# types are filtered when a specific vehicle is requested; the rest (fuel
+# stations, price history) belong to the user as a whole, not one vehicle.
+CSV_EXPORT_TYPES = {
+    'vehicles': {'filename': 'vehicles.csv', 'fn': _csv_vehicles, 'vehicle_scoped': True},
+    'vehicle_specs': {'filename': 'vehicle_specs.csv', 'fn': _csv_vehicle_specs, 'vehicle_scoped': True},
+    'fuel_logs': {'filename': 'fuel_logs.csv', 'fn': _csv_fuel_logs, 'vehicle_scoped': True},
+    'expenses': {'filename': 'expenses.csv', 'fn': _csv_expenses, 'vehicle_scoped': True},
+    'reminders': {'filename': 'reminders.csv', 'fn': _csv_reminders, 'vehicle_scoped': True},
+    'maintenance_schedules': {'filename': 'maintenance_schedules.csv', 'fn': _csv_maintenance_schedules, 'vehicle_scoped': True},
+    'recurring_expenses': {'filename': 'recurring_expenses.csv', 'fn': _csv_recurring_expenses, 'vehicle_scoped': True},
+    'documents': {'filename': 'documents.csv', 'fn': _csv_documents, 'vehicle_scoped': True},
+    'trips': {'filename': 'trips.csv', 'fn': _csv_trips, 'vehicle_scoped': True},
+    'charging_sessions': {'filename': 'charging_sessions.csv', 'fn': _csv_charging_sessions, 'vehicle_scoped': True},
+    'vehicle_parts': {'filename': 'vehicle_parts.csv', 'fn': _csv_vehicle_parts, 'vehicle_scoped': True},
+    'fuel_stations': {'filename': 'fuel_stations.csv', 'fn': _csv_fuel_stations, 'vehicle_scoped': False},
+    'fuel_price_history': {'filename': 'fuel_price_history.csv', 'fn': _csv_fuel_price_history, 'vehicle_scoped': False},
+}
+
+
 @bp.route('/export/csv')
 @login_required
 def export_csv():
-    """
-    Export all user data as CSV files in a ZIP archive.
-    Includes: vehicles.csv, fuel_logs.csv, expenses.csv
-    """
-    import zipfile
+    """Export all user data as CSV files in a ZIP archive."""
+    vehicles = current_user.get_all_vehicles()
 
-    # Create a BytesIO buffer for the ZIP file
     zip_buffer = io.BytesIO()
-
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        # Export Vehicles
-        vehicles_csv = io.StringIO()
-        writer = csv.writer(vehicles_csv)
-        writer.writerow([
-            'id', 'name', 'vehicle_type', 'make', 'model', 'year',
-            'registration', 'vin', 'fuel_type', 'tank_capacity',
-            'is_active', 'notes', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            writer.writerow([
-                vehicle.id, vehicle.name, vehicle.vehicle_type,
-                vehicle.make, vehicle.model, vehicle.year,
-                vehicle.registration, vehicle.vin, vehicle.fuel_type,
-                vehicle.tank_capacity, vehicle.is_active, vehicle.notes,
-                vehicle.created_at.isoformat() if vehicle.created_at else ''
-            ])
-        zip_file.writestr('vehicles.csv', vehicles_csv.getvalue())
-
-        # Export Vehicle Specs
-        specs_csv = io.StringIO()
-        writer = csv.writer(specs_csv)
-        writer.writerow(['vehicle_id', 'vehicle_name', 'spec_type', 'label', 'value'])
-        for vehicle in current_user.get_all_vehicles():
-            for spec in vehicle.specs.all():
-                writer.writerow([
-                    vehicle.id, vehicle.name, spec.spec_type, spec.label, spec.value
-                ])
-        zip_file.writestr('vehicle_specs.csv', specs_csv.getvalue())
-
-        # Export Fuel Logs
-        fuel_csv = io.StringIO()
-        writer = csv.writer(fuel_csv)
-        writer.writerow([
-            'id', 'vehicle_id', 'vehicle_name', 'date', 'odometer',
-            'volume', 'price_per_unit', 'total_cost', 'fuel_grade', 'is_full_tank',
-            'is_missed', 'station', 'notes', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            for log in vehicle.fuel_logs.order_by(FuelLog.date.desc()).all():
-                writer.writerow([
-                    log.id, vehicle.id, vehicle.name, log.date.isoformat(),
-                    log.odometer, log.volume, log.price_per_unit, log.total_cost,
-                    log.fuel_grade, log.is_full_tank, log.is_missed, log.station, log.notes,
-                    log.created_at.isoformat() if log.created_at else ''
-                ])
-        zip_file.writestr('fuel_logs.csv', fuel_csv.getvalue())
-
-        # Export Expenses
-        expenses_csv = io.StringIO()
-        writer = csv.writer(expenses_csv)
-        writer.writerow([
-            'id', 'vehicle_id', 'vehicle_name', 'date', 'category',
-            'description', 'cost', 'odometer', 'vendor', 'notes', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            for expense in vehicle.expenses.order_by(Expense.date.desc()).all():
-                writer.writerow([
-                    expense.id, vehicle.id, vehicle.name, expense.date.isoformat(),
-                    expense.category, expense.description, expense.cost,
-                    expense.odometer, expense.vendor, expense.notes,
-                    expense.created_at.isoformat() if expense.created_at else ''
-                ])
-        zip_file.writestr('expenses.csv', expenses_csv.getvalue())
-
-        # Export Reminders
-        reminders_csv = io.StringIO()
-        writer = csv.writer(reminders_csv)
-        writer.writerow([
-            'id', 'vehicle_id', 'vehicle_name', 'title', 'description', 'reminder_type',
-            'due_date', 'recurrence', 'recurrence_interval', 'notify_days_before',
-            'is_completed', 'completed_at', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            for reminder in vehicle.reminders.all():
-                writer.writerow([
-                    reminder.id, vehicle.id, vehicle.name, reminder.title,
-                    reminder.description, reminder.reminder_type,
-                    reminder.due_date.isoformat() if reminder.due_date else '',
-                    reminder.recurrence, reminder.recurrence_interval, reminder.notify_days_before,
-                    reminder.is_completed,
-                    reminder.completed_at.isoformat() if reminder.completed_at else '',
-                    reminder.created_at.isoformat() if reminder.created_at else ''
-                ])
-        zip_file.writestr('reminders.csv', reminders_csv.getvalue())
-
-        # Export Maintenance Schedules
-        maintenance_csv = io.StringIO()
-        writer = csv.writer(maintenance_csv)
-        writer.writerow([
-            'id', 'vehicle_id', 'vehicle_name', 'name', 'maintenance_type', 'description',
-            'interval_miles', 'interval_km', 'interval_months',
-            'last_performed_date', 'last_performed_odometer',
-            'next_due_date', 'next_due_odometer', 'estimated_cost',
-            'auto_remind', 'is_active', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            for schedule in vehicle.maintenance_schedules.all():
-                writer.writerow([
-                    schedule.id, vehicle.id, vehicle.name, schedule.name,
-                    schedule.maintenance_type, schedule.description,
-                    schedule.interval_miles, schedule.interval_km, schedule.interval_months,
-                    schedule.last_performed_date.isoformat() if schedule.last_performed_date else '',
-                    schedule.last_performed_odometer,
-                    schedule.next_due_date.isoformat() if schedule.next_due_date else '',
-                    schedule.next_due_odometer, schedule.estimated_cost,
-                    schedule.auto_remind, schedule.is_active,
-                    schedule.created_at.isoformat() if schedule.created_at else ''
-                ])
-        zip_file.writestr('maintenance_schedules.csv', maintenance_csv.getvalue())
-
-        # Export Recurring Expenses
-        recurring_csv = io.StringIO()
-        writer = csv.writer(recurring_csv)
-        writer.writerow([
-            'id', 'vehicle_id', 'vehicle_name', 'name', 'category', 'description',
-            'amount', 'vendor', 'frequency', 'start_date', 'end_date',
-            'last_generated', 'next_due', 'auto_create', 'is_active', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            for recurring in vehicle.recurring_expenses.all():
-                writer.writerow([
-                    recurring.id, vehicle.id, vehicle.name, recurring.name,
-                    recurring.category, recurring.description, recurring.amount,
-                    recurring.vendor, recurring.frequency,
-                    recurring.start_date.isoformat() if recurring.start_date else '',
-                    recurring.end_date.isoformat() if recurring.end_date else '',
-                    recurring.last_generated.isoformat() if recurring.last_generated else '',
-                    recurring.next_due.isoformat() if recurring.next_due else '',
-                    recurring.auto_create, recurring.is_active,
-                    recurring.created_at.isoformat() if recurring.created_at else ''
-                ])
-        zip_file.writestr('recurring_expenses.csv', recurring_csv.getvalue())
-
-        # Export Documents (metadata only, not files)
-        documents_csv = io.StringIO()
-        writer = csv.writer(documents_csv)
-        writer.writerow([
-            'id', 'vehicle_id', 'vehicle_name', 'title', 'document_type', 'description',
-            'original_filename', 'file_type', 'file_size',
-            'issue_date', 'expiry_date', 'reference_number', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            for doc in vehicle.documents.all():
-                writer.writerow([
-                    doc.id, vehicle.id, vehicle.name, doc.title,
-                    doc.document_type, doc.description,
-                    doc.original_filename, doc.file_type, doc.file_size,
-                    doc.issue_date.isoformat() if doc.issue_date else '',
-                    doc.expiry_date.isoformat() if doc.expiry_date else '',
-                    doc.reference_number,
-                    doc.created_at.isoformat() if doc.created_at else ''
-                ])
-        zip_file.writestr('documents.csv', documents_csv.getvalue())
-
-        # Export Trips
-        trips_csv = io.StringIO()
-        writer = csv.writer(trips_csv)
-        writer.writerow([
-            'id', 'vehicle_id', 'vehicle_name', 'date', 'start_odometer', 'end_odometer',
-            'distance', 'purpose', 'description', 'start_location', 'end_location',
-            'notes', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            for trip in vehicle.trips.order_by(Trip.date.desc()).all():
-                writer.writerow([
-                    trip.id, vehicle.id, vehicle.name,
-                    trip.date.isoformat() if trip.date else '',
-                    trip.start_odometer, trip.end_odometer, trip.distance,
-                    trip.purpose, trip.description,
-                    trip.start_location, trip.end_location,
-                    trip.notes,
-                    trip.created_at.isoformat() if trip.created_at else ''
-                ])
-        zip_file.writestr('trips.csv', trips_csv.getvalue())
-
-        # Export Charging Sessions
-        charging_csv = io.StringIO()
-        writer = csv.writer(charging_csv)
-        writer.writerow([
-            'id', 'vehicle_id', 'vehicle_name', 'date', 'start_time', 'end_time',
-            'odometer', 'kwh_added', 'start_soc', 'end_soc',
-            'cost_per_kwh', 'total_cost', 'charger_type', 'location', 'network',
-            'notes', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            for session in vehicle.charging_sessions.order_by(ChargingSession.date.desc()).all():
-                writer.writerow([
-                    session.id, vehicle.id, vehicle.name,
-                    session.date.isoformat() if session.date else '',
-                    session.start_time.isoformat() if session.start_time else '',
-                    session.end_time.isoformat() if session.end_time else '',
-                    session.odometer, session.kwh_added, session.start_soc, session.end_soc,
-                    session.cost_per_kwh, session.total_cost,
-                    session.charger_type, session.location, session.network,
-                    session.notes,
-                    session.created_at.isoformat() if session.created_at else ''
-                ])
-        zip_file.writestr('charging_sessions.csv', charging_csv.getvalue())
-
-        # Export Vehicle Parts
-        parts_csv = io.StringIO()
-        writer = csv.writer(parts_csv)
-        writer.writerow([
-            'id', 'vehicle_id', 'vehicle_name', 'name', 'part_type', 'specification',
-            'quantity', 'unit', 'part_number', 'supplier_url', 'notes', 'created_at'
-        ])
-        for vehicle in current_user.get_all_vehicles():
-            for part in vehicle.parts.all():
-                writer.writerow([
-                    part.id, vehicle.id, vehicle.name, part.name,
-                    part.part_type, part.specification,
-                    part.quantity, part.unit, part.part_number,
-                    part.supplier_url, part.notes,
-                    part.created_at.isoformat() if part.created_at else ''
-                ])
-        zip_file.writestr('vehicle_parts.csv', parts_csv.getvalue())
-
-        # Export Fuel Stations
-        stations_csv = io.StringIO()
-        writer = csv.writer(stations_csv)
-        writer.writerow([
-            'id', 'name', 'brand', 'address', 'city', 'postcode',
-            'latitude', 'longitude', 'notes', 'is_favorite',
-            'times_used', 'last_used', 'created_at'
-        ])
-        for station in current_user.fuel_stations.all():
-            writer.writerow([
-                station.id, station.name, station.brand,
-                station.address, station.city, station.postcode,
-                station.latitude, station.longitude,
-                station.notes, station.is_favorite,
-                station.times_used,
-                station.last_used.isoformat() if station.last_used else '',
-                station.created_at.isoformat() if station.created_at else ''
-            ])
-        zip_file.writestr('fuel_stations.csv', stations_csv.getvalue())
-
-        # Export Fuel Price History
-        prices_csv = io.StringIO()
-        writer = csv.writer(prices_csv)
-        writer.writerow([
-            'id', 'station_id', 'station_name', 'date', 'fuel_type',
-            'price_per_unit', 'created_at'
-        ])
-        for station in current_user.fuel_stations.all():
-            for price in station.price_history.all():
-                writer.writerow([
-                    price.id, station.id, station.name,
-                    price.date.isoformat() if price.date else '',
-                    price.fuel_type, price.price_per_unit,
-                    price.created_at.isoformat() if price.created_at else ''
-                ])
-        zip_file.writestr('fuel_price_history.csv', prices_csv.getvalue())
-
+        for spec in CSV_EXPORT_TYPES.values():
+            zip_file.writestr(spec['filename'], spec['fn'](vehicles))
     zip_buffer.seek(0)
 
-    # Generate filename with timestamp
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f'pitstop_export_{timestamp}.zip'
 
@@ -1411,6 +1436,49 @@ def export_csv():
         zip_buffer.getvalue(),
         mimetype='application/zip',
         headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+
+@bp.route('/export/csv/custom')
+@login_required
+def export_csv_custom():
+    """Export selected CSV data types, optionally scoped to one vehicle."""
+    selected = [t for t in request.args.getlist('types') if t in CSV_EXPORT_TYPES]
+    if not selected:
+        flash(_('Select at least one data type to export'), 'error')
+        return redirect(url_for('auth.settings') + '#export')
+
+    all_vehicles = current_user.get_all_vehicles()
+    vehicle_id = request.args.get('vehicle_id', type=int)
+    vehicles = all_vehicles
+    if vehicle_id:
+        vehicles = [v for v in all_vehicles if v.id == vehicle_id]
+        if not vehicles:
+            flash(_('Access denied'), 'error')
+            return redirect(url_for('auth.settings') + '#export')
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    if len(selected) == 1:
+        spec = CSV_EXPORT_TYPES[selected[0]]
+        content = spec['fn'](vehicles if spec['vehicle_scoped'] else all_vehicles)
+        return Response(
+            content,
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={selected[0]}_{timestamp}.csv'}
+        )
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for key in selected:
+            spec = CSV_EXPORT_TYPES[key]
+            zip_file.writestr(spec['filename'], spec['fn'](vehicles if spec['vehicle_scoped'] else all_vehicles))
+    zip_buffer.seek(0)
+
+    return Response(
+        zip_buffer.getvalue(),
+        mimetype='application/zip',
+        headers={'Content-Disposition': f'attachment; filename=pitstop_export_{timestamp}.zip'}
     )
 
 

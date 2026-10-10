@@ -539,6 +539,43 @@
                                 </a>
                             </div>
 
+                            <div class="py-3 border-t border-gray-200 dark:border-gray-700" id="export">
+                                <h3 class="text-sm font-medium text-gray-900 dark:text-white">{{ _('Custom CSV Export') }}</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ _('Pick exactly what you want, optionally limited to one vehicle') }}</p>
+                                <form method="GET" action="{{ url_for('api.export_csv_custom') }}" class="space-y-3">
+                                    {% set csv_type_labels = {
+                                        'vehicles': _('Vehicles'), 'vehicle_specs': _('Vehicle Specs'),
+                                        'fuel_logs': _('Fuel Logs'), 'expenses': _('Expenses'),
+                                        'reminders': _('Reminders'), 'maintenance_schedules': _('Maintenance Schedules'),
+                                        'recurring_expenses': _('Recurring Expenses'), 'documents': _('Documents'),
+                                        'trips': _('Trips'), 'charging_sessions': _('Charging Sessions'),
+                                        'vehicle_parts': _('Vehicle Parts'), 'fuel_stations': _('Fuel Stations'),
+                                        'fuel_price_history': _('Fuel Price History')
+                                    } %}
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {% for type_key, type_label in csv_type_labels.items() %}
+                                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                            <input type="checkbox" name="types" value="{{ type_key }}"
+                                                   class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                                            {{ type_label }}
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <select name="vehicle_id" class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm px-3 py-1.5 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                            <option value="">{{ _('All Vehicles') }}</option>
+                                            {% for v in current_user.get_all_vehicles() %}
+                                            <option value="{{ v.id }}">{{ v.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit"
+                                                class="px-4 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                            {{ _('Download') }}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
                             <div class="flex items-center justify-between py-3 border-t border-gray-200 dark:border-gray-700">
                                 <div>
                                     <h3 class="text-sm font-medium text-gray-900 dark:text-white">{{ _('Export as JSON') }}</h3>

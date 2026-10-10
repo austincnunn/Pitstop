@@ -706,6 +706,11 @@
         {% else %}
         <p class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ _('No expenses yet.') }}</p>
         {% endif %}
+        {% if stats.expenses_count > recent_expenses|length %}
+        <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
+            <a href="{{ url_for('expenses.index', vehicle_id=vehicle.id) }}" class="text-sm text-primary-600 hover:text-primary-500">{{ _('See more') }} &rarr;</a>
+        </div>
+        {% endif %}
     </div>
 </div>
 
