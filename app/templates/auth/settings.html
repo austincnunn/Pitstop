@@ -897,6 +897,28 @@
                             <span class="mt-3 inline-flex items-center px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 dark:bg-gray-700 dark:text-gray-400 rounded">{{ _('Not configured') }}</span>
                             {% endif %}
                         </button>
+
+                        <!-- Actual Budget Card (Admin Only) -->
+                        <button type="button" onclick="showIntegration('actual')"
+                                class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 text-left hover:shadow-md hover:border-primary-300 border-2 border-transparent transition-all">
+                            <div class="flex items-center mb-3">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                                    <svg class="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-gray-900 dark:text-white">{{ _('Actual Budget') }}</h3>
+                                    <span class="px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">{{ _('Admin') }}</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Import vehicle expenses from Actual Budget') }}</p>
+                            {% if actual_settings.api_url and actual_settings.has_api_key and actual_settings.sync_id %}
+                            <span class="mt-3 inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">{{ _('Configured') }}</span>
+                            {% else %}
+                            <span class="mt-3 inline-flex items-center px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">{{ _('Not configured') }}</span>
+                            {% endif %}
+                        </button>
                         {% endif %}
                     </div>
                 </div>
@@ -1229,6 +1251,149 @@
                                     </div>
                                 </form>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actual Budget Integration Detail -->
+                <div id="integration-actual" class="integration-detail hidden">
+                    <div class="mb-6">
+                        <button type="button" onclick="hideIntegration()" class="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4">
+                            <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                            {{ _('Back to Integrations') }}
+                        </button>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 shadow rounded-lg divide-y divide-gray-200 dark:divide-gray-700">
+                        <div class="p-6">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                                    <svg class="h-7 w-7 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Actual Budget Integration') }}</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Import vehicle expenses from Actual Budget transactions') }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                <p class="text-sm text-gray-600 dark:text-gray-300">
+                                    {{ _('Spending transactions in mapped Actual Budget categories are imported as expenses on the vehicle you choose. Actual has no built-in HTTP API, so Pitstop connects through the actual-http-api sidecar container.') }}
+                                </p>
+
+                                <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                                    <h4 class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">{{ _('Setup') }}</h4>
+                                    <ol class="text-sm text-blue-700 dark:text-blue-400 list-decimal list-inside space-y-1">
+                                        <li>{{ _('Run') }} <a href="https://github.com/jhonderson/actual-http-api" target="_blank" rel="noopener" class="underline">actual-http-api</a> {{ _('next to Actual (see docker-compose.yml for an example)') }}</li>
+                                        <li>{{ _('Enter its URL and API key, plus the budget Sync ID (Actual: Settings → Advanced → Sync ID)') }}</li>
+                                        <li>{{ _('Save, then map Actual categories to vehicles') }}</li>
+                                    </ol>
+                                </div>
+
+                                <div class="p-4 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
+                                    <h4 class="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2">{{ _('Good to know') }}</h4>
+                                    <ul class="text-sm text-amber-700 dark:text-amber-400 list-disc list-inside space-y-1">
+                                        <li>{{ _('Each transaction is imported once; later edits in Actual are not copied over') }}</li>
+                                        <li>{{ _('A deleted expense can be re-imported while its transaction is still inside the sync window (last sync minus 7 days)') }}</li>
+                                        <li>{{ _('Refunds, income, and transfers are skipped; no currency conversion is done') }}</li>
+                                    </ul>
+                                </div>
+
+                                <form method="POST" action="{{ url_for('auth.actual_settings') }}" class="space-y-4" id="actual-settings-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="actual_api_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ _('actual-http-api URL') }}</label>
+                                            <input type="url" name="actual_api_url" id="actual_api_url"
+                                                   value="{{ actual_settings.api_url or '' }}"
+                                                   placeholder="http://actual-http-api:5007"
+                                                   class="w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                        </div>
+                                        <div>
+                                            <label for="actual_api_key" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ _('API Key') }}</label>
+                                            <input type="password" name="actual_api_key" id="actual_api_key" autocomplete="new-password"
+                                                   placeholder="{{ _('Saved - leave blank to keep') if actual_settings.has_api_key else _('API_KEY from the sidecar') }}"
+                                                   class="w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                        </div>
+                                        <div>
+                                            <label for="actual_budget_sync_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ _('Budget Sync ID') }}</label>
+                                            <input type="text" name="actual_budget_sync_id" id="actual_budget_sync_id"
+                                                   value="{{ actual_settings.sync_id or '' }}"
+                                                   class="w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                        </div>
+                                        <div>
+                                            <label for="actual_budget_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ _('Budget Encryption Password (optional)') }}</label>
+                                            <input type="password" name="actual_budget_password" id="actual_budget_password" autocomplete="new-password"
+                                                   placeholder="{{ _('Saved - leave blank to keep') if actual_settings.has_password else _('Only if end-to-end encryption is on') }}"
+                                                   class="w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                            {% if actual_settings.has_password %}
+                                            <label class="mt-1 inline-flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                                <input type="checkbox" name="actual_clear_password" class="mr-1 rounded border-gray-300"> {{ _('Clear saved password') }}
+                                            </label>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <label for="actual_sync_start" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ _('Import transactions from') }}</label>
+                                            <input type="date" name="actual_sync_start" id="actual_sync_start"
+                                                   value="{{ actual_settings.sync_start or '' }}"
+                                                   class="w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Blank = last 30 days on first sync') }}</p>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <label class="inline-flex items-center text-sm text-gray-700 dark:text-gray-300">
+                                                <input type="checkbox" name="actual_sync_enabled" class="mr-2 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                       {% if actual_settings.sync_enabled %}checked{% endif %}>
+                                                {{ _('Sync automatically once a day') }}
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <span id="actual-test-result" class="block text-sm"></span>
+
+                                    <div class="flex flex-wrap justify-end gap-2">
+                                        <button type="button" onclick="testActualConnection()"
+                                                class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                            {{ _('Test Connection') }}
+                                        </button>
+                                        <button type="submit"
+                                                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                                            {{ _('Save Actual Budget Settings') }}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="p-6">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div class="text-sm text-gray-600 dark:text-gray-300">
+                                    <p>{{ _('%(count)s categories mapped', count=actual_settings.mapped_count) }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ _('Last sync:') }} {{ actual_settings.last_sync[:16].replace('T', ' ') ~ ' UTC' if actual_settings.last_sync else _('never') }}
+                                    </p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <a href="{{ url_for('auth.actual_mapping') }}"
+                                       class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                        {{ _('Map Categories') }}
+                                    </a>
+                                    <button type="button" id="actual-sync-btn" onclick="syncActualNow()"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
+                                        <svg id="actual-sync-spinner" class="hidden animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                        </svg>
+                                        {{ _('Sync Now') }}
+                                    </button>
+                                </div>
+                            </div>
+                            <span id="actual-sync-result" class="block mt-2 text-sm"></span>
                         </div>
                     </div>
                 </div>
@@ -2030,6 +2195,45 @@ function testTessieToken() {
             resultSpan.textContent = 'Error testing API token';
             resultSpan.className = 'block mt-2 text-sm text-red-600 dark:text-red-400';
             console.error(err);
+        });
+}
+
+function showActualResult(spanId, ok, text) {
+    const span = document.getElementById(spanId);
+    span.textContent = text;
+    span.className = spanId === 'actual-sync-result' ? 'block mt-2 text-sm ' : 'block text-sm ';
+    span.className += ok === null ? 'text-gray-500 dark:text-gray-400'
+        : ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+}
+
+function testActualConnection() {
+    showActualResult('actual-test-result', null, 'Testing...');
+    const formData = new FormData(document.getElementById('actual-settings-form'));
+    fetch('/api/actual/test', { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => showActualResult('actual-test-result', data.success, data.message || data.error || 'Connection failed'))
+        .catch(err => {
+            showActualResult('actual-test-result', false, 'Error testing connection');
+            console.error(err);
+        });
+}
+
+function syncActualNow() {
+    const btn = document.getElementById('actual-sync-btn');
+    const spinner = document.getElementById('actual-sync-spinner');
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+    showActualResult('actual-sync-result', null, 'Syncing...');
+    fetch('/api/actual/sync', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => showActualResult('actual-sync-result', data.success, data.message || data.error || 'Sync failed'))
+        .catch(err => {
+            showActualResult('actual-sync-result', false, 'Error syncing');
+            console.error(err);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            spinner.classList.add('hidden');
         });
 }
 

@@ -33,3 +33,19 @@ services:
 # To use SQLite instead, drop the postgres service above and set on pitstop:
 #   environment:
 #     - DATABASE_URL=sqlite:////app/data/pitstop.db
+
+# Optional: Actual Budget expense import. Actual has no HTTP API of its own, so run
+# the actual-http-api sidecar next to your Actual server, then in Pitstop go to
+# Settings > Integrations > Actual Budget and use URL http://actual-http-api:5007
+# with the API_KEY below.
+#
+#  actual-http-api:
+#    image: jhonderson/actual-http-api:latest
+#    container_name: actual-http-api
+#    restart: unless-stopped
+#    ports:
+#      - "5007:5007"
+#    environment:
+#      - ACTUAL_SERVER_URL=http://actual-server:5006
+#      - ACTUAL_SERVER_PASSWORD=your-actual-password
+#      - API_KEY=generate-a-long-random-key

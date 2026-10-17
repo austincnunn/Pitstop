@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 import requests
@@ -354,6 +355,20 @@ def settings():
             'api_token': AppSettings.get('tessie_api_token'),
         }
 
+    # Get Actual Budget settings for admins (secrets only reported as set/unset)
+    actual_settings = {}
+    if current_user.is_admin:
+        actual_settings = {
+            'api_url': AppSettings.get('actual_api_url', ''),
+            'sync_id': AppSettings.get('actual_budget_sync_id', ''),
+            'sync_start': AppSettings.get('actual_sync_start', ''),
+            'sync_enabled': AppSettings.get('actual_sync_enabled', 'false') == 'true',
+            'last_sync': AppSettings.get('actual_last_sync', ''),
+            'has_api_key': bool(AppSettings.get('actual_api_key')),
+            'has_password': bool(AppSettings.get('actual_budget_password')),
+            'mapped_count': len(json.loads(AppSettings.get('actual_category_map') or '{}')),
+        }
+
     # Get registration setting
     registration_enabled = AppSettings.get('registration_enabled', 'true') == 'true'
 
@@ -377,6 +392,7 @@ def settings():
                            pushover_configured=pushover_configured,
                            dvla_settings=dvla_settings,
                            tessie_settings=tessie_settings,
+                           actual_settings=actual_settings,
                            github_repo=GITHUB_REPO,
                            registration_enabled=registration_enabled,
                            backup_settings=backup_settings,
@@ -531,6 +547,87 @@ def tessie_settings():
 
     flash(_('Tessie settings updated'), 'success')
     return redirect(url_for('auth.settings') + '#services-tessie')
+
+
+@bp.route('/actual-settings', methods=['POST'])
+@login_required
+@admin_required
+def actual_settings():
+    """Update Actual Budget settings (admin only)"""
+    api_url = request.form.get('actual_api_url', '').strip().rstrip('/')
+    if api_url and not api_url.startswith(('http://', 'https://')):
+        flash(_('Actual Budget API URL must start with http:// or https://'), 'error')
+        return redirect(url_for('auth.settings') + '#services-actual')
+
+    sync_start = request.form.get('actual_sync_start', '').strip()
+    if sync_start:
+        try:
+            datetime.strptime(sync_start, '%Y-%m-%d')
+        except ValueError:
+            flash(_('Invalid import start date'), 'error')
+            return redirect(url_for('auth.settings') + '#services-actual')
+
+    AppSettings.set('actual_api_url', api_url)
+    AppSettings.set('actual_budget_sync_id', request.form.get('actual_budget_sync_id', '').strip())
+    AppSettings.set('actual_sync_start', sync_start)
+    AppSettings.set('actual_sync_enabled', 'true' if request.form.get('actual_sync_enabled') else 'false')
+
+    # Secrets are never rendered back into the page; blank keeps the stored value
+    for key in ('actual_api_key', 'actual_budget_password'):
+        value = request.form.get(key, '').strip()
+        if value:
+            AppSettings.set(key, value)
+    if request.form.get('actual_clear_password'):
+        AppSettings.set('actual_budget_password', '')
+
+    flash(_('Actual Budget settings updated'), 'success')
+    return redirect(url_for('auth.settings') + '#services-actual')
+
+
+@bp.route('/actual-mapping', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def actual_mapping():
+    """Map Actual Budget categories to a vehicle + expense category (admin only)"""
+    from app.models import Vehicle, EXPENSE_CATEGORIES
+    from app.services.actual_budget import ActualBudgetService
+
+    if request.method == 'POST':
+        valid_vehicle_ids = {v.id for v in Vehicle.query.all()}
+        category_map = {}
+        for category_id in request.form.getlist('category_ids'):
+            vehicle_id = request.form.get(f'vehicle_{category_id}', type=int)
+            if not vehicle_id or vehicle_id not in valid_vehicle_ids:
+                continue
+            expense_category = request.form.get(f'category_{category_id}')
+            if expense_category not in dict(EXPENSE_CATEGORIES):
+                expense_category = 'other'
+            category_map[category_id] = {
+                'name': request.form.get(f'name_{category_id}', '')[:100],
+                'vehicle_id': vehicle_id,
+                'category': expense_category,
+            }
+        AppSettings.set('actual_category_map', json.dumps(category_map))
+        flash(_('Actual Budget category mapping saved'), 'success')
+        return redirect(url_for('auth.settings') + '#services-actual')
+
+    success, result = ActualBudgetService.get_categories()
+    categories = []
+    error = None
+    if success:
+        categories = sorted(
+            (c for c in (result or []) if not c.get('hidden') and not c.get('is_income')),
+            key=lambda c: (c.get('name') or '').lower(),
+        )
+    else:
+        error = result
+
+    return render_template('auth/actual_mapping.html',
+                           categories=categories,
+                           error=error,
+                           category_map=ActualBudgetService.get_category_map(),
+                           vehicles=Vehicle.query.order_by(Vehicle.name).all(),
+                           expense_categories=EXPENSE_CATEGORIES)
 
 
 @bp.route('/registration-settings', methods=['POST'])

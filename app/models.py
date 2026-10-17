@@ -530,6 +530,9 @@ class Expense(db.Model):
     vendor = db.Column(db.String(100))
     notes = db.Column(db.Text)
 
+    # Actual Budget transaction this expense was imported from (dedupe key)
+    actual_transaction_id = db.Column(db.String(64), unique=True, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships

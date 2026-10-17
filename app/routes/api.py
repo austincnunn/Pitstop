@@ -987,6 +987,53 @@ def tessie_test_token():
     return jsonify({'success': success, 'message': message})
 
 
+@bp.route('/actual/test', methods=['POST'])
+@login_required
+def actual_test_connection():
+    """Test Actual Budget connection using unsaved form values (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+    from app.services.actual_budget import ActualBudgetService
+
+    # Blank secret fields fall back to the stored values
+    config = ActualBudgetService.get_config()
+    for form_key, config_key in (('actual_api_url', 'url'), ('actual_api_key', 'api_key'),
+                                 ('actual_budget_sync_id', 'sync_id'), ('actual_budget_password', 'password')):
+        value = (request.form.get(form_key) or '').strip()
+        if value:
+            config[config_key] = value
+
+    if not config['url'].startswith(('http://', 'https://')):
+        return jsonify({'success': False, 'error': 'API URL must start with http:// or https://'}), 400
+
+    success, message = ActualBudgetService.test_connection(config)
+    return jsonify({'success': success, 'message': message})
+
+
+@bp.route('/actual/sync', methods=['POST'])
+@login_required
+def actual_sync():
+    """Import mapped Actual Budget transactions as expenses now (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+    from app.services.actual_budget import ActualBudgetService
+
+    if not ActualBudgetService.is_configured():
+        return jsonify({'success': False, 'message': 'Actual Budget is not configured'}), 400
+
+    success, result = ActualBudgetService.sync_expenses()
+    if not success:
+        return jsonify({'success': False, 'message': result})
+
+    message = f"Imported {result['imported']} expense(s), skipped {result['skipped']}"
+    if result['errors']:
+        message += f" ({len(result['errors'])} account error(s): {'; '.join(result['errors'])})"
+    return jsonify({'success': True, 'imported': result['imported'],
+                    'skipped': result['skipped'], 'message': message})
+
+
 @bp.route('/tessie/status')
 @login_required
 def tessie_status():

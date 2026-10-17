@@ -328,6 +328,7 @@ def create_app(config_class=Config):
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         _start_reminder_scheduler(app)
         _start_backup_scheduler(app)
+        _start_actual_sync_scheduler(app)
 
     return app
 
@@ -391,3 +392,29 @@ def _start_backup_scheduler(app):
     thread = threading.Thread(target=backup_loop, daemon=True, name='backup-scheduler')
     thread.start()
     app.logger.info("Started background backup scheduler (hourly checks)")
+
+
+def _start_actual_sync_scheduler(app):
+    """Start a background thread that imports Actual Budget expenses daily (when enabled)."""
+    import threading
+    import time
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    def actual_sync_loop():
+        time.sleep(120)
+
+        while True:
+            try:
+                with app.app_context():
+                    from app.services.actual_budget import run_scheduled_actual_sync_tick
+                    run_scheduled_actual_sync_tick(app)
+            except Exception as e:
+                logger.error('Error in Actual Budget sync scheduler: %s', e)
+
+            time.sleep(3600)
+
+    thread = threading.Thread(target=actual_sync_loop, daemon=True, name='actual-sync-scheduler')
+    thread.start()
+    app.logger.info("Started background Actual Budget sync scheduler (hourly checks)")
