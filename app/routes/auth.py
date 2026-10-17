@@ -3,7 +3,7 @@ import os
 import uuid
 import requests
 from datetime import datetime
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session, abort
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
@@ -14,6 +14,7 @@ from app.security import (
     validate_webhook_url, admin_required, validate_hex_color, safe_int
 )
 from app.services.notifications import NotificationService
+from app.services.oidc import get_oidc_client, is_oidc_enabled, resolve_user
 from config import GITHUB_REPO, APP_VERSION
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -54,7 +55,62 @@ def login():
         AppSettings.get('smtp_host') and
         AppSettings.get('smtp_username')
     )
-    return render_template('auth/login.html', registration_enabled=registration_enabled, smtp_configured=smtp_configured)
+    return render_template(
+        'auth/login.html',
+        registration_enabled=registration_enabled,
+        smtp_configured=smtp_configured,
+        oidc_enabled=is_oidc_enabled(),
+        oidc_provider_name=current_app.config.get('OIDC_PROVIDER_NAME') or 'SSO',
+    )
+
+
+@bp.route('/oidc/login')
+def oidc_login():
+    client = get_oidc_client()
+    if not client:
+        abort(404)
+    if current_user.is_authenticated:
+        return redirect(get_start_page_url(current_user))
+
+    session['oidc_next'] = get_safe_redirect_url(request.args.get('next'), default=None)
+    redirect_uri = current_app.config.get('OIDC_REDIRECT_URI') or url_for('auth.oidc_callback', _external=True)
+    try:
+        return client.authorize_redirect(redirect_uri)
+    except Exception as e:
+        current_app.logger.warning('SSO login could not start: %s', e)
+        flash(_('Single sign-on is unavailable right now. Please try again or sign in with your password.'), 'error')
+        return redirect(url_for('auth.login'))
+
+
+@bp.route('/oidc/callback')
+def oidc_callback():
+    client = get_oidc_client()
+    if not client:
+        abort(404)
+
+    try:
+        # Validates state, PKCE and the ID token, then exchanges the code
+        token = client.authorize_access_token()
+        claims = dict(token.get('userinfo') or {})
+        # Some providers (e.g. Authelia 4.39+) keep email/groups out of the ID token
+        userinfo = client.userinfo(token=token)
+        if claims.get('sub') and userinfo.get('sub') != claims['sub']:
+            raise ValueError('userinfo subject does not match the ID token')
+        claims.update(userinfo)
+    except Exception as e:
+        current_app.logger.warning('SSO login failed: %s', e)
+        flash(_('Single sign-on failed. Please try again.'), 'error')
+        return redirect(url_for('auth.login'))
+
+    user, error = resolve_user(claims)
+    if not user:
+        current_app.logger.warning('SSO login rejected for sub=%s: %s', claims.get('sub'), error)
+        flash(error, 'error')
+        return redirect(url_for('auth.login'))
+
+    login_user(user)
+    next_page = session.pop('oidc_next', None)
+    return redirect(get_safe_redirect_url(next_page, default=None) or get_start_page_url(user))
 
 
 @bp.route('/forgot-password', methods=['GET', 'POST'])

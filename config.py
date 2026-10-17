@@ -58,3 +58,17 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     # Set SESSION_COOKIE_SECURE=true if served over HTTPS (e.g. behind a TLS-terminating reverse proxy)
     SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+
+    # OpenID Connect single sign-on (e.g. Authelia, Authentik, Keycloak)
+    OIDC_ENABLED = os.environ.get('OIDC_ENABLED', 'false').lower() == 'true'
+    OIDC_DISCOVERY_URL = os.environ.get('OIDC_DISCOVERY_URL')  # https://auth.example.com/.well-known/openid-configuration
+    OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID')
+    OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET')
+    OIDC_SCOPES = os.environ.get('OIDC_SCOPES', 'openid email profile groups')
+    OIDC_PROVIDER_NAME = os.environ.get('OIDC_PROVIDER_NAME', 'SSO')  # Button reads "Sign in with <name>"
+    # Absolute callback URL; only needed if Pitstop builds the wrong one behind a proxy
+    OIDC_REDIRECT_URI = os.environ.get('OIDC_REDIRECT_URI')
+    # Create a Pitstop account on first SSO login when no existing account matches
+    OIDC_AUTO_REGISTER = os.environ.get('OIDC_AUTO_REGISTER', 'true').lower() == 'true'
+    # If set, members of this group are Pitstop admins and everyone else is not (synced on every SSO login)
+    OIDC_ADMIN_GROUP = os.environ.get('OIDC_ADMIN_GROUP')
