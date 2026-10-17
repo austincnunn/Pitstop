@@ -125,6 +125,14 @@ python run.py
 | `ADMIN_PASSWORD` | Password for the default admin account | Auto-generated |
 | `TAILWIND_ASSET_URL` | Local Tailwind Play CDN JS path | `/static/vendor/tailwindcss.js` |
 | `TAILWIND_CDN_URL` | Tailwind CDN fallback URL | `https://cdn.tailwindcss.com` |
+| `OIDC_ENABLED` | Turn on single sign-on (see [Single Sign-On](#single-sign-on-oidc)) | `false` |
+| `OIDC_DISCOVERY_URL` | Provider's `.well-known/openid-configuration` URL | — |
+| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Client credentials registered with your provider | — |
+| `OIDC_PROVIDER_NAME` | Button text: "Sign in with *name*" | `SSO` |
+| `OIDC_SCOPES` | Scopes to request | `openid email profile groups` |
+| `OIDC_AUTO_REGISTER` | Create an account on first SSO login if none matches | `true` |
+| `OIDC_ADMIN_GROUP` | Members of this group are admins, everyone else isn't (synced each SSO login) | — |
+| `OIDC_REDIRECT_URI` | Override the callback URL if Pitstop builds the wrong one behind a proxy | auto |
 
 `SECRET_KEY` is automatically generated and stored on first startup — you do not need to set it manually. If you want a fixed key (e.g. to keep sessions alive across container restarts), you can provide it as an environment variable.
 
@@ -225,6 +233,64 @@ curl -H "Authorization: Bearer pitstop_your_api_key" \
 ```
 
 See the API documentation at `/api/docs` when logged in.
+
+## Single Sign-On (OIDC)
+
+Pitstop can add a **Sign in with …** button for any OpenID Connect provider (Authelia, Authentik, Keycloak, Pocket ID, …). Password login keeps working alongside it.
+
+1. Register a confidential client with your provider:
+   - Redirect URI: `https://your-pitstop-host/auth/oidc/callback`
+   - Scopes: `openid email profile groups`
+   - PKCE: S256
+   - Token endpoint auth method: `client_secret_basic`
+2. Set the environment variables:
+
+```yaml
+environment:
+  - OIDC_ENABLED=true
+  - OIDC_DISCOVERY_URL=https://auth.example.com/.well-known/openid-configuration
+  - OIDC_CLIENT_ID=pitstop
+  - OIDC_CLIENT_SECRET=your-client-secret
+  - OIDC_PROVIDER_NAME=Authelia
+  - OIDC_ADMIN_GROUP=admins          # optional
+  - OIDC_REDIRECT_URI=https://pitstop.example.com/auth/oidc/callback   # behind a reverse proxy
+```
+
+Behind a reverse proxy that terminates TLS, set `OIDC_REDIRECT_URI`; otherwise Pitstop may send an `http://` callback URL that your provider rejects.
+
+How accounts are matched on SSO login:
+
+1. **Already linked:** the provider's user ID (`sub`) is remembered after the first login.
+2. **Same email:** an existing account with the same email is linked automatically, but only if the provider marks the email as verified.
+3. **New user:** otherwise an account is created (username from `preferred_username`), unless `OIDC_AUTO_REGISTER=false`.
+
+If `OIDC_ADMIN_GROUP` is set, admin rights follow that group on every SSO login, so removing someone from the group removes their admin access.
+
+<details>
+<summary>Example Authelia client</summary>
+
+```yaml
+identity_providers:
+  oidc:
+    clients:
+      - client_id: 'pitstop'
+        client_name: 'Pitstop'
+        client_secret: '$pbkdf2-sha512$...'   # authelia crypto hash generate pbkdf2
+        public: false
+        authorization_policy: 'two_factor'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://pitstop.example.com/auth/oidc/callback'
+        scopes: ['openid', 'email', 'profile', 'groups']
+        response_types: ['code']
+        grant_types: ['authorization_code']
+        access_token_signed_response_alg: 'none'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'
+```
+
+</details>
 
 ## Integrations
 

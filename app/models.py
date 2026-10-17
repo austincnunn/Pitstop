@@ -92,6 +92,9 @@ class User(UserMixin, db.Model):
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime)
 
+    # Single sign-on: the identity provider's stable `sub` claim
+    oidc_subject = db.Column(db.String(255), unique=True, index=True)
+
     # API access
     api_key = db.Column(db.String(64), unique=True, index=True)
     api_key_created_at = db.Column(db.DateTime)

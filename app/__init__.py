@@ -107,6 +107,7 @@ def _run_schema_migrations(app):
             ('show_widget_recent_expenses', 'BOOLEAN DEFAULT TRUE'),
             ('show_widget_fuel_costs_by_grade', 'BOOLEAN DEFAULT TRUE'),
             ('unit_system', "VARCHAR(20) DEFAULT 'imperial'"),
+            ('oidc_subject', 'VARCHAR(255)'),
         ],
         'charging_sessions': [
             ('tessie_charge_id', 'VARCHAR(50)'),
@@ -118,6 +119,7 @@ def _run_schema_migrations(app):
     unique_indexes = [
         ('charging_sessions', 'tessie_charge_id', 'ix_charging_sessions_tessie_charge_id'),
         ('users', 'password_reset_token', 'ix_users_password_reset_token'),
+        ('users', 'oidc_subject', 'ix_users_oidc_subject'),
     ]
 
     with db.engine.connect() as conn:
@@ -199,6 +201,9 @@ def create_app(config_class=Config):
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
+
+    from app.services.oidc import init_oidc
+    init_oidc(app)
 
     # Make languages and branding available in templates
     @app.context_processor
