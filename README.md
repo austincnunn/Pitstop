@@ -129,6 +129,7 @@ python run.py
 | `OIDC_DISCOVERY_URL` | Provider's `.well-known/openid-configuration` URL | — |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Client credentials registered with your provider | — |
 | `OIDC_PROVIDER_NAME` | Button text: "Sign in with *name*" | `SSO` |
+| `OIDC_BUTTON_TEXT` | Replaces the whole button label, e.g. `Log in` | "Sign in with *name*" |
 | `OIDC_SCOPES` | Scopes to request | `openid email profile groups` |
 | `OIDC_AUTO_REGISTER` | Create an account on first SSO login if none matches | `true` |
 | `OIDC_ADMIN_GROUP` | Members of this group are admins, everyone else isn't (synced each SSO login) | — |

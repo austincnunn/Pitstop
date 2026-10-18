@@ -15,6 +15,7 @@ class OIDCTestConfig(TestConfig):
     OIDC_CLIENT_SECRET = 'client-secret'
     OIDC_SCOPES = 'openid email profile groups'
     OIDC_PROVIDER_NAME = 'Authelia'
+    OIDC_BUTTON_TEXT = None
     OIDC_REDIRECT_URI = None
     OIDC_AUTO_REGISTER = True
     OIDC_ADMIN_GROUP = None
@@ -118,6 +119,12 @@ class TestOIDCLoginStart:
     def test_login_page_shows_button(self, client):
         response = client.get('/auth/login')
         assert b'Sign in with Authelia' in response.data
+
+    def test_button_text_override(self, app, client):
+        app.config['OIDC_BUTTON_TEXT'] = 'Log in'
+        response = client.get('/auth/login')
+        assert b'Sign in with Authelia' not in response.data
+        assert b'Log in' in response.data
 
     def test_redirects_to_provider_with_pkce(self, app, client):
         sso = app.extensions['pitstop_oidc']
@@ -336,6 +343,20 @@ class TestOIDCRedirectAfterLogin:
 # ---------------------------------------------------------------------------
 
 PASSWORD_FIELD = b'name="password"'
+
+
+class TestSsoOnlyWithoutAutoRedirect:
+    def test_login_page_waits_for_a_click(self, app, client):
+        app.config['OIDC_DISABLE_PASSWORD_LOGIN'] = True
+        app.config['OIDC_BUTTON_TEXT'] = 'Log in'
+
+        response = client.get('/auth/login')
+
+        assert response.status_code == 200
+        assert b'href="/auth/oidc/login' in response.data
+        assert b'Log in' in response.data
+        assert b'Sign in with' not in response.data
+        assert PASSWORD_FIELD not in response.data
 
 
 class TestPasswordLoginDisabled:

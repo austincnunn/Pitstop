@@ -80,7 +80,8 @@ def login():
         registration_enabled=registration_enabled,
         smtp_configured=smtp_configured,
         oidc_enabled=is_oidc_enabled(),
-        oidc_provider_name=current_app.config.get('OIDC_PROVIDER_NAME') or 'SSO',
+        oidc_button_text=(current_app.config.get('OIDC_BUTTON_TEXT')
+                          or 'Sign in with %s' % (current_app.config.get('OIDC_PROVIDER_NAME') or 'SSO')),
     )
 
 
