@@ -18,13 +18,16 @@
             Sign in with {{ oidc_provider_name }}
         </a>
 
+        {% if password_login_enabled() %}
         <div class="my-6 flex items-center">
             <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
             <span class="mx-3 text-xs uppercase text-gray-500 dark:text-gray-400">or</span>
             <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
         </div>
         {% endif %}
+        {% endif %}
 
+        {% if password_login_enabled() %}
         <form method="POST" class="space-y-6">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
@@ -55,6 +58,7 @@
                 Sign in
             </button>
         </form>
+        {% endif %}
 
         {% if registration_enabled %}
         <p class="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">

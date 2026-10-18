@@ -133,6 +133,8 @@ python run.py
 | `OIDC_AUTO_REGISTER` | Create an account on first SSO login if none matches | `true` |
 | `OIDC_ADMIN_GROUP` | Members of this group are admins, everyone else isn't (synced each SSO login) | — |
 | `OIDC_REDIRECT_URI` | Override the callback URL if Pitstop builds the wrong one behind a proxy | auto |
+| `OIDC_DISABLE_PASSWORD_LOGIN` | Make SSO the only way in: hides the password form, registration and password reset (ignored if SSO isn't fully configured) | `false` |
+| `OIDC_AUTO_REDIRECT` | Send the login page straight to your provider (`/auth/login?local=1` shows the page instead) | `false` |
 
 `SECRET_KEY` is automatically generated and stored on first startup — you do not need to set it manually. If you want a fixed key (e.g. to keep sessions alive across container restarts), you can provide it as an environment variable.
 
@@ -265,6 +267,20 @@ How accounts are matched on SSO login:
 3. **New user:** otherwise an account is created (username from `preferred_username`), unless `OIDC_AUTO_REGISTER=false`.
 
 If `OIDC_ADMIN_GROUP` is set, admin rights follow that group on every SSO login, so removing someone from the group removes their admin access.
+
+### SSO-only login
+
+Once SSO works for your admin account, you can make it the only way in:
+
+```yaml
+  - OIDC_DISABLE_PASSWORD_LOGIN=true   # no password form, registration or password reset
+  - OIDC_AUTO_REDIRECT=true            # /auth/login goes straight to your provider
+```
+
+- **API keys keep working.** That covers the REST API, Home Assistant and the calendar feed.
+- **If SSO isn't fully configured** (for example, a missing client secret), Pitstop ignores `OIDC_DISABLE_PASSWORD_LOGIN`, so you can't lock yourself out.
+- **To get password login back,** set it to `false` and restart.
+- **After logging out or a failed SSO attempt,** you land on `/auth/login?local=1` instead of being sent straight back to the provider.
 
 <details>
 <summary>Example Authelia client</summary>

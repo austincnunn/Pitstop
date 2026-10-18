@@ -18,6 +18,8 @@ class OIDCTestConfig(TestConfig):
     OIDC_REDIRECT_URI = None
     OIDC_AUTO_REGISTER = True
     OIDC_ADMIN_GROUP = None
+    OIDC_DISABLE_PASSWORD_LOGIN = False
+    OIDC_AUTO_REDIRECT = False
 
 
 class FakeOIDCClient:
@@ -327,3 +329,122 @@ class TestOIDCRedirectAfterLogin:
         response = client.get('/auth/oidc/callback')
 
         assert 'evil.example.com' not in response.headers['Location']
+
+
+# ---------------------------------------------------------------------------
+# SSO-only mode (OIDC_DISABLE_PASSWORD_LOGIN) and OIDC_AUTO_REDIRECT
+# ---------------------------------------------------------------------------
+
+PASSWORD_FIELD = b'name="password"'
+
+
+class TestPasswordLoginDisabled:
+    @pytest.fixture(autouse=True)
+    def sso_only(self, app):
+        app.config['OIDC_DISABLE_PASSWORD_LOGIN'] = True
+
+    def test_login_page_shows_only_sso(self, client):
+        response = client.get('/auth/login')
+        assert b'Sign in with Authelia' in response.data
+        assert PASSWORD_FIELD not in response.data
+        assert b'href="/auth/register"' not in response.data
+        assert b'href="/auth/forgot-password"' not in response.data
+
+    def test_correct_password_is_refused(self, client, test_user):
+        response = client.post('/auth/login', data={'username': 'testuser', 'password': 'TestPass123!'})
+
+        assert response.status_code == 302
+        assert 'local=1' in response.headers['Location']
+        assert logged_in_user_id(client) is None
+
+    @pytest.mark.parametrize('path', ['/auth/register', '/auth/forgot-password', '/auth/reset-password/sometoken'])
+    def test_password_pages_redirect_to_login(self, client, path):
+        response = client.get(path, follow_redirects=True)
+        assert b'Password login is turned off' in response.data
+
+    def test_settings_ignores_password_change(self, app, client, test_user):
+        old_hash = test_user.password_hash
+        with client.session_transaction() as sess:
+            sess['_user_id'] = str(test_user.id)
+            sess['_fresh'] = True
+
+        page = client.get('/auth/settings')
+        assert page.status_code == 200
+        assert b'name="new_password"' not in page.data
+
+        client.post('/auth/settings', data={
+            'language': 'en', 'unit_system': 'imperial',
+            'new_password': 'Changed123!', 'confirm_new_password': 'Changed123!',
+        })
+        db.session.refresh(test_user)
+        assert test_user.password_hash == old_hash
+
+    def test_misconfigured_sso_keeps_password_login(self, test_user):
+        class Broken(OIDCTestConfig):
+            OIDC_CLIENT_SECRET = None
+            OIDC_DISABLE_PASSWORD_LOGIN = True
+
+        flask_app, ctx = make_app(Broken)
+        try:
+            c = flask_app.test_client()
+            assert PASSWORD_FIELD in c.get('/auth/login').data
+            user = User(username='fallback', email='fallback@example.com')
+            user.set_password('Fallback123!')
+            db.session.add(user)
+            db.session.commit()
+            c.post('/auth/login', data={'username': 'fallback', 'password': 'Fallback123!'})
+            assert logged_in_user_id(c) == str(user.id)
+        finally:
+            db.session.remove()
+            db.drop_all()
+            ctx.pop()
+
+
+class TestAutoRedirect:
+    @pytest.fixture(autouse=True)
+    def auto_redirect(self, app):
+        app.config['OIDC_AUTO_REDIRECT'] = True
+
+    def test_login_goes_straight_to_sso(self, client):
+        response = client.get('/auth/login?next=/vehicles/')
+
+        assert response.status_code == 302
+        location = urlparse(response.headers['Location'])
+        assert location.path == '/auth/oidc/login'
+        assert parse_qs(location.query)['next'] == ['/vehicles/']
+
+    def test_protected_page_ends_up_at_sso_without_stale_notice(self, client):
+        response = client.get('/vehicles/', follow_redirects=False)
+        response = client.get(response.headers['Location'])
+        assert urlparse(response.headers['Location']).path == '/auth/oidc/login'
+        with client.session_transaction() as sess:
+            assert not sess.get('_flashes')
+
+    def test_local_shows_login_page(self, client):
+        response = client.get('/auth/login?local=1')
+        assert response.status_code == 200
+        assert PASSWORD_FIELD in response.data
+
+    def test_logout_does_not_loop_back_to_sso(self, client, test_user):
+        with client.session_transaction() as sess:
+            sess['_user_id'] = str(test_user.id)
+            sess['_fresh'] = True
+
+        response = client.get('/auth/logout')
+
+        assert 'local=1' in response.headers['Location']
+        assert client.get(response.headers['Location']).status_code == 200
+
+    def test_failed_sso_does_not_loop(self, app, client):
+        use_fake(app, error=Exception('access_denied'))
+
+        response = client.get('/auth/oidc/callback')
+
+        assert 'local=1' in response.headers['Location']
+        page = client.get(response.headers['Location'])
+        assert page.status_code == 200
+        assert b'Single sign-on failed' in page.data
+
+    def test_no_redirect_when_sso_is_off(self, plain_client):
+        plain_client.application.config['OIDC_AUTO_REDIRECT'] = True
+        assert plain_client.get('/auth/login').status_code == 200
