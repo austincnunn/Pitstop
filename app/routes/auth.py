@@ -3,7 +3,7 @@ import os
 import uuid
 import requests
 from datetime import datetime
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session, abort
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session, abort, get_flashed_messages
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
@@ -14,16 +14,35 @@ from app.security import (
     validate_webhook_url, admin_required, validate_hex_color, safe_int
 )
 from app.services.notifications import NotificationService
-from app.services.oidc import get_oidc_client, is_oidc_enabled, resolve_user
+from app.services.oidc import get_oidc_client, is_oidc_enabled, password_login_enabled, resolve_user
 from config import GITHUB_REPO, APP_VERSION
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+
+def sso_login_page():
+    """The login page without the SSO auto-redirect, so errors and logouts don't loop back to the provider."""
+    return redirect(url_for('auth.login', local=1))
+
+
+def password_login_off():
+    flash(_('Password login is turned off. Please use single sign-on.'), 'info')
+    return sso_login_page()
 
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(get_start_page_url(current_user))
+
+    if (request.method == 'GET' and is_oidc_enabled() and current_app.config.get('OIDC_AUTO_REDIRECT')
+            and not request.args.get('local')):
+        # Drop flask-login's "Please log in" notice; it would otherwise show up after SSO
+        get_flashed_messages()
+        return redirect(url_for('auth.oidc_login', next=request.args.get('next')))
+
+    if request.method == 'POST' and not password_login_enabled():
+        return password_login_off()
 
     if request.method == 'POST':
         username = request.form.get('username')
@@ -49,8 +68,9 @@ def login():
                 db.session.commit()
             flash(_('Invalid username or password'), 'error')
 
-    registration_enabled = AppSettings.get('registration_enabled', 'true') == 'true'
-    smtp_configured = bool(
+    passwords_on = password_login_enabled()
+    registration_enabled = passwords_on and AppSettings.get('registration_enabled', 'true') == 'true'
+    smtp_configured = passwords_on and bool(
         AppSettings.get('smtp_enabled', 'true') == 'true' and
         AppSettings.get('smtp_host') and
         AppSettings.get('smtp_username')
@@ -60,7 +80,8 @@ def login():
         registration_enabled=registration_enabled,
         smtp_configured=smtp_configured,
         oidc_enabled=is_oidc_enabled(),
-        oidc_provider_name=current_app.config.get('OIDC_PROVIDER_NAME') or 'SSO',
+        oidc_button_text=(current_app.config.get('OIDC_BUTTON_TEXT')
+                          or 'Sign in with %s' % (current_app.config.get('OIDC_PROVIDER_NAME') or 'SSO')),
     )
 
 
@@ -79,7 +100,7 @@ def oidc_login():
     except Exception as e:
         current_app.logger.warning('SSO login could not start: %s', e)
         flash(_('Single sign-on is unavailable right now. Please try again or sign in with your password.'), 'error')
-        return redirect(url_for('auth.login'))
+        return sso_login_page()
 
 
 @bp.route('/oidc/callback')
@@ -100,13 +121,13 @@ def oidc_callback():
     except Exception as e:
         current_app.logger.warning('SSO login failed: %s', e)
         flash(_('Single sign-on failed. Please try again.'), 'error')
-        return redirect(url_for('auth.login'))
+        return sso_login_page()
 
     user, error = resolve_user(claims)
     if not user:
         current_app.logger.warning('SSO login rejected for sub=%s: %s', claims.get('sub'), error)
         flash(error, 'error')
-        return redirect(url_for('auth.login'))
+        return sso_login_page()
 
     login_user(user)
     next_page = session.pop('oidc_next', None)
@@ -117,6 +138,9 @@ def oidc_callback():
 def forgot_password():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
+
+    if not password_login_enabled():
+        return password_login_off()
 
     smtp_configured = bool(
         AppSettings.get('smtp_enabled', 'true') == 'true' and
@@ -169,6 +193,9 @@ def forgot_password():
 def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
+
+    if not password_login_enabled():
+        return password_login_off()
 
     user = User.get_by_reset_token(token)
     if not user:
@@ -225,6 +252,9 @@ def get_start_page_url(user):
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
+
+    if not password_login_enabled():
+        return password_login_off()
 
     # Check if registration is enabled
     if AppSettings.get('registration_enabled', 'true') != 'true':
@@ -295,7 +325,7 @@ def check_updates():
 def logout():
     logout_user()
     flash(_('You have been logged out.'), 'info')
-    return redirect(url_for('auth.login'))
+    return sso_login_page()
 
 
 @bp.route('/settings', methods=['GET', 'POST'])
@@ -348,8 +378,8 @@ def settings():
                 return render_template('auth/settings.html', branding=branding)
             current_user.email = new_email
 
-        # Update password if provided
-        new_password = request.form.get('new_password')
+        # Update password if provided (not when SSO is the only way in)
+        new_password = request.form.get('new_password') if password_login_enabled() else None
         if new_password:
             confirm_password = request.form.get('confirm_new_password')
             if new_password != confirm_password:

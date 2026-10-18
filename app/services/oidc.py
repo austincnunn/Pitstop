@@ -13,6 +13,7 @@ USERNAME_MAX_LENGTH = 64
 
 def init_oidc(app):
     """Register the OIDC client on the app when OIDC is enabled and configured."""
+    app.jinja_env.globals['password_login_enabled'] = password_login_enabled
     if not app.config.get('OIDC_ENABLED'):
         return
 
@@ -43,6 +44,11 @@ def get_oidc_client():
 
 def is_oidc_enabled():
     return get_oidc_client() is not None
+
+
+def password_login_enabled():
+    """False only when SSO works and OIDC_DISABLE_PASSWORD_LOGIN is set."""
+    return not (is_oidc_enabled() and current_app.config.get('OIDC_DISABLE_PASSWORD_LOGIN'))
 
 
 def _groups(claims):
