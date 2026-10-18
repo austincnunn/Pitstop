@@ -114,6 +114,10 @@
             rootStyle.setProperty(`--primary-${key}`, value);
         });
     </script>
+    {% if TAILWIND_CSS_URL %}
+    <link rel="stylesheet" href="{{ TAILWIND_CSS_URL }}">
+    {% else %}
+    <!-- No compiled CSS (local dev without a build): compile in the browser -->
     <script>
         // Tailwind reads `tailwind.config` from a setter it installs on window.tailwind,
         // so this must run AFTER the library script below, not before.
@@ -145,6 +149,7 @@
     </script>
     <script src="{{ TAILWIND_ASSET_URL }}" onerror="window.__loadTailwindFallback()"></script>
     <script>window.__applyTailwindConfig();</script>
+    {% endif %}
     <!-- Flatpickr date picker - CSS with CDN fallback -->
     <link rel="stylesheet" href="{{ FLATPICKR_CSS_ASSET_URL }}" onerror="this.onerror=null;this.href='{{ FLATPICKR_CSS_CDN_URL }}';">
     <!-- Flatpickr JS with CDN fallback -->

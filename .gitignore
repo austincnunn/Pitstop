@@ -16,3 +16,6 @@ data/
 
 .idea/
 .vscode/
+
+# Built by the Dockerfile (tailwindcss standalone CLI)
+app/static/css/tailwind.css

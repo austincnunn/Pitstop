@@ -1,5 +1,5 @@
 // Pitstop - Service Worker
-const CACHE_NAME = 'pitstop-v1';
+const CACHE_NAME = 'pitstop-v2';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache on install
@@ -7,7 +7,7 @@ const PRECACHE_ASSETS = [
   '/',
   '/offline',
   '/static/manifest.json',
-  '/static/vendor/tailwindcss.js'
+  '/static/css/tailwind.css'
 ];
 
 // Install event - cache core assets

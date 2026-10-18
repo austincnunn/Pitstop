@@ -1,3 +1,20 @@
+# Compile Tailwind CSS once at build time instead of in every browser.
+# Output is architecture-independent, so build on the native builder platform.
+FROM --platform=$BUILDPLATFORM debian:trixie-slim AS css
+ARG BUILDARCH
+ARG TAILWIND_VERSION=v3.4.17
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && arch=$([ "$BUILDARCH" = "arm64" ] && echo arm64 || echo x64) \
+    && curl -fsSL -o /usr/local/bin/tailwindcss \
+       "https://github.com/tailwindlabs/tailwindcss/releases/download/${TAILWIND_VERSION}/tailwindcss-linux-${arch}" \
+    && chmod +x /usr/local/bin/tailwindcss
+WORKDIR /src
+COPY tailwind.config.js ./
+COPY app/templates ./app/templates
+COPY app/static ./app/static
+RUN tailwindcss -c tailwind.config.js -i app/static/css/tailwind.input.css -o /tailwind.css --minify
+
 FROM python:3.14-slim-trixie
 
 WORKDIR /app
@@ -25,6 +42,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
+COPY --from=css /tailwind.css /app/app/static/css/tailwind.css
 
 # Create non-root user and set up directories
 RUN useradd --create-home --shell /bin/bash pitstop \
