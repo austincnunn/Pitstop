@@ -1,4 +1,7 @@
+import csv
+import io
 import os
+import re
 from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
@@ -39,6 +42,50 @@ def _clean_url(value):
     """Only keep http(s) links so they are safe to render as hrefs."""
     value = (value or '').strip()
     return value if value.lower().startswith(('http://', 'https://')) else None
+
+
+# Bulk add / CSV import: header aliases and positional order when there is no header
+ITEM_COLUMNS = ['name', 'quantity', 'est_price', 'part_number', 'url', 'notes']
+COLUMN_ALIASES = {
+    'name': 'name', 'item': 'name', 'part': 'name', 'description': 'name',
+    'qty': 'quantity', 'quantity': 'quantity',
+    'price': 'est_price', 'est_price': 'est_price', 'cost': 'est_price', 'unit price': 'est_price',
+    'part number': 'part_number', 'part_number': 'part_number', 'part #': 'part_number',
+    'pn': 'part_number', 'sku': 'part_number',
+    'url': 'url', 'link': 'url',
+    'notes': 'notes',
+}
+MAX_BULK_ROWS = 500
+MAX_IMPORT_BYTES = 1024 * 1024
+
+
+def _parse_items(text):
+    """Parse pasted rows or CSV text into item dicts. Returns (items, skipped_count)."""
+    delimiter = '\t' if '\t' in text else ','
+    rows = [r for r in csv.reader(io.StringIO(text), delimiter=delimiter, skipinitialspace=True) if any(c.strip() for c in r)]
+
+    columns = ITEM_COLUMNS
+    if rows:
+        header = [COLUMN_ALIASES.get(c.strip().lower()) for c in rows[0]]
+        if 'name' in header:
+            columns, rows = header, rows[1:]
+
+    items, skipped = [], 0
+    for row in rows[:MAX_BULK_ROWS]:
+        values = {col: cell.strip() for col, cell in zip(columns, row) if col}
+        if not values.get('name'):
+            skipped += 1
+            continue
+        price = re.sub(r'[^0-9.\-]', '', values.get('est_price', ''))
+        items.append({
+            'name': values['name'][:200],
+            'quantity': max(safe_int(values.get('quantity'), 1) or 1, 1),
+            'est_price': safe_float(price),
+            'part_number': values.get('part_number', '')[:100] or None,
+            'url': _clean_url(values.get('url')),
+            'notes': values.get('notes') or None,
+        })
+    return items, skipped + max(len(rows) - MAX_BULK_ROWS, 0)
 
 
 def _parse_date(value):
@@ -257,6 +304,42 @@ def add_item(project_id):
         notes=request.form.get('notes'),
     ))
     db.session.commit()
+    return redirect(url_for('shopping.project', project_id=project.id))
+
+
+@bp.route('/projects/<int:project_id>/items/bulk', methods=['POST'])
+@login_required
+def bulk_add_items(project_id):
+    project = _get_accessible_project(project_id)
+    if not project:
+        flash(_('Access denied'), 'error')
+        return redirect(url_for('shopping.index'))
+
+    text = request.form.get('text') or ''
+    file = request.files.get('file')
+    if file and file.filename:
+        data = file.read(MAX_IMPORT_BYTES + 1)
+        if len(data) > MAX_IMPORT_BYTES:
+            flash(_('CSV file is too large (max 1 MB)'), 'error')
+            return redirect(url_for('shopping.project', project_id=project.id))
+        try:
+            text = data.decode('utf-8-sig')
+        except UnicodeDecodeError:
+            flash(_('CSV file must be UTF-8 encoded'), 'error')
+            return redirect(url_for('shopping.project', project_id=project.id))
+
+    items, skipped = _parse_items(text)
+    for values in items:
+        db.session.add(ShoppingItem(project_id=project.id, **values))
+    db.session.commit()
+
+    if items:
+        message = _('Added %(count)s items', count=len(items))
+        if skipped:
+            message += ' ' + _('(skipped %(count)s rows: missing name or over the %(max)s row limit)', count=skipped, max=MAX_BULK_ROWS)
+        flash(message, 'success')
+    else:
+        flash(_('No items found to add'), 'error')
     return redirect(url_for('shopping.project', project_id=project.id))
 
 

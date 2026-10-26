@@ -147,3 +147,48 @@ def test_backup_restore_relinks_projects(app, test_user):
     assert project.expense.cost == 99
     item = project.items.one()
     assert item.receipts.one().expense_id == project.expense_id
+
+
+def test_bulk_add_pasted_text(auth_client, sample_vehicle, test_user):
+    project = _project(sample_vehicle, test_user)
+    text = 'Intake manifold, 1, "$1,299.99", IM-1\n\nVacuum caps\n, 3, 5\nBad link, 1, 2, X, javascript:alert(1)\n'
+    response = auth_client.post(f'/shopping/projects/{project.id}/items/bulk', data={'text': text},
+                                follow_redirects=True)
+
+    items = {i.name: i for i in project.items}
+    assert set(items) == {'Intake manifold', 'Vacuum caps', 'Bad link'}
+    assert items['Intake manifold'].est_price == 1299.99
+    assert items['Intake manifold'].part_number == 'IM-1'
+    assert items['Vacuum caps'].quantity == 1 and items['Vacuum caps'].est_price is None
+    assert items['Bad link'].url is None
+    assert b'Added 3 items' in response.data
+    assert b'skipped 1 rows' in response.data
+
+
+def test_bulk_add_spreadsheet_paste_with_header(auth_client, sample_vehicle, test_user):
+    project = _project(sample_vehicle, test_user)
+    text = 'SKU\tQuantity\tItem\tUnit Price\nTB-9\t2\tThrottle body\t89.50\n'
+    auth_client.post(f'/shopping/projects/{project.id}/items/bulk', data={'text': text})
+
+    item = project.items.one()
+    assert (item.name, item.quantity, item.est_price, item.part_number) == ('Throttle body', 2, 89.5, 'TB-9')
+
+
+def test_csv_import_with_bom_and_quoted_comma(auth_client, sample_vehicle, test_user):
+    project = _project(sample_vehicle, test_user)
+    csv_bytes = '﻿name,qty,price,link\n"Gasket, upper",2,12.50,https://example.com/g\n'.encode('utf-8')
+    auth_client.post(f'/shopping/projects/{project.id}/items/bulk',
+                     data={'file': (io.BytesIO(csv_bytes), 'parts.csv')}, content_type='multipart/form-data')
+
+    item = project.items.one()
+    assert (item.name, item.quantity, item.est_price, item.url) == ('Gasket, upper', 2, 12.5, 'https://example.com/g')
+
+
+def test_bulk_add_rejects_other_users_project(auth_client, admin_user):
+    vehicle = Vehicle(owner_id=admin_user.id, name='Admin Car', vehicle_type='car', fuel_type='petrol')
+    db.session.add(vehicle)
+    db.session.commit()
+    project = _project(vehicle, admin_user)
+
+    auth_client.post(f'/shopping/projects/{project.id}/items/bulk', data={'text': 'Sneaky part'})
+    assert project.items.count() == 0
