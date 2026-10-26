@@ -241,6 +241,7 @@
                         {% endif %}
 
                         <!-- Change Password -->
+                        {% if password_login_enabled() %}
                         <div class="bg-white dark:bg-gray-800 shadow rounded-lg divide-y divide-gray-200 dark:divide-gray-700">
                             <div class="p-6">
                                 <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ _('Change Password') }}</h2>
@@ -270,6 +271,7 @@
                                 </button>
                             </div>
                         </div>
+                        {% endif %}
 
                         <!-- Danger Zone -->
                         <div class="bg-white dark:bg-gray-800 shadow rounded-lg divide-y divide-gray-200 dark:divide-gray-700 border border-red-200 dark:border-red-800">
@@ -406,6 +408,11 @@
                                         <input type="checkbox" name="show_menu_notes" {% if current_user.show_menu_notes is not defined or current_user.show_menu_notes %}checked{% endif %}
                                                class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
                                         <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">{{ _('Notes') }}</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="show_menu_shopping" {% if current_user.show_menu_shopping is not defined or current_user.show_menu_shopping %}checked{% endif %}
+                                               class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                                        <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">{{ _('Shopping List') }}</span>
                                     </label>
                                 </div>
                             </div>

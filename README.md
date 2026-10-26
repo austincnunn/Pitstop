@@ -46,6 +46,13 @@ Named Pitstop, because keeping on top of vehicle maintenance should be as quick 
 - **Home Assistant Integration**: Create sensors and automations for your vehicles
 - **Calendar Subscription**: Subscribe to reminders in Apple Calendar, Google Calendar, Outlook
 - **Docker Ready**: Easy self-hosting via Docker
+- **Trips & Mileage**: Track business and personal trips for tax and mileage reporting
+- **EV Charging**: Log charging sessions with energy, cost, and state of charge
+- **Parts & Supplies**: Track vehicle parts and consumable supplies
+- **Vehicle Notes**: Keep free-form notes per vehicle
+- **Tesla Integration (Tessie)**: Refresh odometer, battery, and range; import charging history
+- **Actual Budget Import**: Import expenses from an Actual Budget instance
+- **Automated Backups**: Scheduled backups to disk and email
 
 ## Installation
 
@@ -125,14 +132,26 @@ python run.py
 | `ADMIN_PASSWORD` | Password for the default admin account | Auto-generated |
 | `TAILWIND_ASSET_URL` | Local Tailwind Play CDN JS path | `/static/vendor/tailwindcss.js` |
 | `TAILWIND_CDN_URL` | Tailwind CDN fallback URL | `https://cdn.tailwindcss.com` |
+| `FLATPICKR_JS_ASSET_URL` | Local Flatpickr JS path | `/static/vendor/flatpickr.min.js` |
+| `FLATPICKR_JS_CDN_URL` | Flatpickr JS CDN fallback URL | `https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js` |
+| `FLATPICKR_CSS_ASSET_URL` | Local Flatpickr CSS path | `/static/vendor/flatpickr.min.css` |
+| `FLATPICKR_CSS_CDN_URL` | Flatpickr CSS CDN fallback URL | `https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css` |
+| `ADMIN_USERNAME` | Username for the default admin account (first run only) | `admin` |
+| `ADMIN_EMAIL` | Email for the default admin account (first run only) | `admin@example.com` |
+| `INTERNAL_API_KEY` | Secret used for internal/reverse-proxy requests | Auto-generated |
+| `SESSION_COOKIE_SECURE` | Send the session cookie only over HTTPS | `false` |
+| `RELEASE_CHANNEL` | Version display channel (`stable` or `dev`) | `stable` |
 | `OIDC_ENABLED` | Turn on single sign-on (see [Single Sign-On](#single-sign-on-oidc)) | `false` |
 | `OIDC_DISCOVERY_URL` | Provider's `.well-known/openid-configuration` URL | — |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Client credentials registered with your provider | — |
 | `OIDC_PROVIDER_NAME` | Button text: "Sign in with *name*" | `SSO` |
+| `OIDC_BUTTON_TEXT` | Replaces the whole button label, e.g. `Log in` | "Sign in with *name*" |
 | `OIDC_SCOPES` | Scopes to request | `openid email profile groups` |
 | `OIDC_AUTO_REGISTER` | Create an account on first SSO login if none matches | `true` |
 | `OIDC_ADMIN_GROUP` | Members of this group are admins, everyone else isn't (synced each SSO login) | — |
 | `OIDC_REDIRECT_URI` | Override the callback URL if Pitstop builds the wrong one behind a proxy | auto |
+| `OIDC_DISABLE_PASSWORD_LOGIN` | Make SSO the only way in: hides the password form, registration and password reset (ignored if SSO isn't fully configured) | `false` |
+| `OIDC_AUTO_REDIRECT` | Send the login page straight to your provider (`/auth/login?local=1` shows the page instead) | `false` |
 
 `SECRET_KEY` is automatically generated and stored on first startup — you do not need to set it manually. If you want a fixed key (e.g. to keep sessions alive across container restarts), you can provide it as an environment variable.
 
@@ -168,6 +187,24 @@ Categorize all vehicle-related costs:
 - Parking & Tolls
 - Accessories
 - Other expenses
+
+### Trips
+Track business and personal trips:
+- Date, start/end odometer, distance
+- Purpose and notes
+- Useful for mileage and tax reporting
+
+### EV Charging
+Track charging sessions for electric vehicles:
+- Charging location and energy (kWh)
+- State of charge before/after
+- Cost and charging duration
+- Import from Tessie for linked Tesla vehicles
+
+### Supplies
+Track consumable parts and supplies per vehicle:
+- Inventory quantities and restock notes
+- Link supplies to maintenance and expenses
 
 ### Reminders
 Never miss important dates:
@@ -221,6 +258,9 @@ Administrators can configure:
 - **DVLA API**: API key for UK vehicle lookups ([get one here](https://developer-portal.driver-vehicle-licensing.api.gov.uk/))
 - **Branding**: Custom logo, app name, tagline, and primary color
 - **User Management**: Create, edit, and manage user accounts
+- **Backups**: Schedule local backups and optional email delivery
+- **Tessie**: API token for Tesla vehicle data
+- **Actual Budget**: API URL, key, budget sync ID, and category mappings
 
 ## API
 
@@ -265,6 +305,20 @@ How accounts are matched on SSO login:
 3. **New user:** otherwise an account is created (username from `preferred_username`), unless `OIDC_AUTO_REGISTER=false`.
 
 If `OIDC_ADMIN_GROUP` is set, admin rights follow that group on every SSO login, so removing someone from the group removes their admin access.
+
+### SSO-only login
+
+Once SSO works for your admin account, you can make it the only way in:
+
+```yaml
+  - OIDC_DISABLE_PASSWORD_LOGIN=true   # no password form, registration or password reset
+  - OIDC_AUTO_REDIRECT=true            # /auth/login goes straight to your provider
+```
+
+- **API keys keep working.** That covers the REST API, Home Assistant and the calendar feed.
+- **If SSO isn't fully configured** (for example, a missing client secret), Pitstop ignores `OIDC_DISABLE_PASSWORD_LOGIN`, so you can't lock yourself out.
+- **To get password login back,** set it to `false` and restart.
+- **After logging out or a failed SSO attempt,** you land on `/auth/login?local=1` instead of being sent straight back to the provider.
 
 <details>
 <summary>Example Authelia client</summary>
@@ -312,6 +366,18 @@ sensor:
 
 Available endpoints: `/api/ha/status`, `/api/ha/vehicles`, `/api/ha/alerts`, `/api/ha/summary`
 
+### Tessie (Tesla)
+Configure under Settings > Integrations > Tessie with your Tessie API token. Link a vehicle by its VIN to refresh odometer, battery level, and range on demand, and to import its charging history as EV charging sessions.
+
+### Actual Budget
+Import expenses from an Actual Budget instance via the `actual-http-api` sidecar (see the optional service in `docker-compose.yml`):
+
+1. Configure the API URL, API key, and budget sync ID under Settings > Integrations > Actual Budget.
+2. Map Actual Budget categories to a vehicle and expense category (Settings > Integrations > Actual Budget > Map categories).
+3. Trigger an import manually or let the hourly background sync run automatically.
+
+Imported transactions are deduplicated by their Actual Budget transaction ID.
+
 ### Calendar Subscription
 Subscribe to reminders in your calendar app:
 
@@ -354,7 +420,8 @@ Translations were generated with AI assistance and may contain inaccuracies. If 
 
 - **Backend**: Python / Flask
 - **Database**: SQLite (easily swappable)
-- **Frontend**: Tailwind CSS, Chart.js
+- **Frontend**: Tailwind CSS, Flatpickr, Chart.js
+- **i18n**: Flask-Babel
 - **Server**: Gunicorn
 - **Notifications**: SMTP, ntfy, Pushover, Webhooks
 - **PDF Generation**: WeasyPrint

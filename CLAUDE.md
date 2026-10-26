@@ -1,5 +1,7 @@
 # Project Rules
 
+Before changing anything, list every file you'll need and read them
+
 ## Git Commits
 
 - Never include "Co-Authored-By: Claude" or similar AI attribution lines in commits

@@ -17,7 +17,7 @@ from app.models import (
     User, Vehicle, VehicleSpec, FuelLog, Expense, EXPENSE_CATEGORIES,
     Reminder, MaintenanceSchedule, RecurringExpense, FuelStation,
     Document, Trip, ChargingSession, VehiclePart, FuelPriceHistory, Attachment,
-    VehicleNote, TRIP_PURPOSES, CHARGER_TYPES, FUEL_GRADES
+    VehicleNote, ShoppingProject, ShoppingItem, TRIP_PURPOSES, CHARGER_TYPES, FUEL_GRADES
 )
 from app.services.tessie import TessieService
 from flask_babel import gettext as _
@@ -1866,7 +1866,8 @@ def export_full_backup():
             'charging_sessions': [],
             'parts': [],
             'attachments': [],
-            'vehicle_notes': []
+            'vehicle_notes': [],
+            'shopping_projects': []
         }
 
         # Track vehicle image
@@ -1948,6 +1949,7 @@ def export_full_backup():
                     'file_type': attachment.file_type,
                     'file_size': attachment.file_size,
                     'description': attachment.description,
+                    'shopping_item_id': attachment.shopping_item_id,
                     'created_at': attachment.created_at.isoformat() if attachment.created_at else None
                 })
                 files_to_backup.append((attachment.filename, attachment.file_type, 'expense_attachment', attachment.id))
@@ -2093,6 +2095,30 @@ def export_full_backup():
                 'is_pinned': note.is_pinned,
                 'created_at': note.created_at.isoformat() if note.created_at else None,
                 'updated_at': note.updated_at.isoformat() if note.updated_at else None,
+            })
+
+        # Add shopping list projects (receipts are exported with their expense)
+        for project in vehicle.shopping_projects.all():
+            vehicle_data['shopping_projects'].append({
+                'id': project.id,
+                'name': project.name,
+                'category': project.category,
+                'notes': project.notes,
+                'expense_id': project.expense_id,
+                'created_at': project.created_at.isoformat() if project.created_at else None,
+                'items': [{
+                    'id': item.id,
+                    'name': item.name,
+                    'part_number': item.part_number,
+                    'url': item.url,
+                    'quantity': item.quantity,
+                    'est_price': item.est_price,
+                    'notes': item.notes,
+                    'is_purchased': item.is_purchased,
+                    'purchased_price': item.purchased_price,
+                    'purchased_date': item.purchased_date.isoformat() if item.purchased_date else None,
+                    'vendor': item.vendor,
+                } for item in project.items],
             })
 
         export_data['vehicles'].append(vehicle_data)
@@ -2283,7 +2309,7 @@ def _restore_backup_data(data, user, upload_folder):
     stats = {
         'vehicles': 0, 'fuel_logs': 0, 'expenses': 0, 'trips': 0,
         'charging_sessions': 0, 'reminders': 0, 'maintenance': 0, 'documents': 0,
-        'parts': 0, 'recurring': 0, 'stations': 0, 'notes': 0
+        'parts': 0, 'recurring': 0, 'stations': 0, 'notes': 0, 'shopping_projects': 0
     }
 
     # --- fuel stations (keyed by name to avoid duplicates) ---
@@ -2403,7 +2429,9 @@ def _restore_backup_data(data, user, upload_folder):
                     description=ad.get('description'),
                 ))
 
-        # expenses
+        # expenses (ids/receipts remembered so shopping projects can relink below)
+        expense_id_map = {}
+        receipt_links = []  # (Attachment, old shopping_item_id)
         for ed in vd.get('expenses', []):
             exp = Expense(
                 vehicle_id=vehicle.id,
@@ -2418,16 +2446,20 @@ def _restore_backup_data(data, user, upload_folder):
             )
             db.session.add(exp)
             db.session.flush()
+            expense_id_map[ed.get('id')] = exp.id
             stats['expenses'] += 1
             for ad in ed.get('attachments', []):
-                db.session.add(Attachment(
+                att = Attachment(
                     expense_id=exp.id,
                     filename=ad.get('filename'),
                     original_filename=ad.get('original_filename'),
                     file_type=ad.get('file_type'),
                     file_size=ad.get('file_size', 0),
                     description=ad.get('description'),
-                ))
+                )
+                db.session.add(att)
+                if ad.get('shopping_item_id'):
+                    receipt_links.append((att, ad['shopping_item_id']))
 
         # reminders
         for rd in vd.get('reminders', []):
@@ -2573,6 +2605,39 @@ def _restore_backup_data(data, user, upload_folder):
                 is_pinned=nd.get('is_pinned', False),
             ))
             stats['notes'] += 1
+
+        # shopping list projects
+        item_id_map = {}
+        for sp in vd.get('shopping_projects', []):
+            project = ShoppingProject(
+                vehicle_id=vehicle.id,
+                user_id=user.id,
+                name=sp.get('name', ''),
+                category=sp.get('category') or 'accessories',
+                notes=sp.get('notes'),
+                expense_id=expense_id_map.get(sp.get('expense_id')),
+            )
+            db.session.add(project)
+            for it in sp.get('items', []):
+                item = ShoppingItem(
+                    project=project,
+                    name=it.get('name', ''),
+                    part_number=it.get('part_number'),
+                    url=it.get('url'),
+                    quantity=it.get('quantity') or 1,
+                    est_price=it.get('est_price'),
+                    notes=it.get('notes'),
+                    is_purchased=it.get('is_purchased', False),
+                    purchased_price=it.get('purchased_price'),
+                    purchased_date=_parse_date(it.get('purchased_date')),
+                    vendor=it.get('vendor'),
+                )
+                db.session.add(item)
+                item_id_map[it.get('id')] = item
+            stats['shopping_projects'] += 1
+        for att, old_item_id in receipt_links:
+            if old_item_id in item_id_map:
+                att.shopping_item = item_id_map[old_item_id]
 
     db.session.commit()
     return stats

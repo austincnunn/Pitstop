@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Offline - Pitstop</title>
+    {% if TAILWIND_CSS_URL %}
+    <link rel="stylesheet" href="{{ TAILWIND_CSS_URL }}">
+    {% else %}
     <script src="https://cdn.tailwindcss.com"></script>
+    {% endif %}
     <style>
         @keyframes pulse {
             0%, 100% { opacity: 1; }

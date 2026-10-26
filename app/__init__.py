@@ -97,6 +97,7 @@ def _run_schema_migrations(app):
             ('password_reset_expires', 'TIMESTAMP'),
             ('show_menu_supplies', 'BOOLEAN DEFAULT TRUE'),
             ('show_menu_notes', 'BOOLEAN DEFAULT TRUE'),
+            ('show_menu_shopping', 'BOOLEAN DEFAULT TRUE'),
             ('failed_login_attempts', 'INTEGER DEFAULT 0'),
             ('locked_until', 'TIMESTAMP'),
             ('dashboard_widget_order', 'VARCHAR(255)'),
@@ -111,6 +112,9 @@ def _run_schema_migrations(app):
         ],
         'charging_sessions': [
             ('tessie_charge_id', 'VARCHAR(50)'),
+        ],
+        'attachments': [
+            ('shopping_item_id', 'INTEGER'),
         ],
     }
 
@@ -205,6 +209,13 @@ def create_app(config_class=Config):
     from app.services.oidc import init_oidc
     init_oidc(app)
 
+    # Compiled by the Dockerfile; mtime busts browser caches on each new image
+    tailwind_css = os.path.join(app.static_folder, 'css', 'tailwind.css')
+    tailwind_css_url = (
+        f"{app.static_url_path}/css/tailwind.css?v={int(os.path.getmtime(tailwind_css))}"
+        if os.path.exists(tailwind_css) else None
+    )
+
     # Make languages and branding available in templates
     @app.context_processor
     def inject_globals():
@@ -215,6 +226,7 @@ def create_app(config_class=Config):
             'APP_TAGLINE': branding.get('app_tagline', 'Maintenance Tracker'),
             'APP_LOGO': branding.get('logo_filename'),
             'PRIMARY_COLOR': branding.get('primary_color', '#0284c7'),
+            'TAILWIND_CSS_URL': tailwind_css_url,
             'TAILWIND_ASSET_URL': app.config.get('TAILWIND_ASSET_URL', '/static/vendor/tailwindcss.js'),
             'TAILWIND_CDN_URL': app.config.get('TAILWIND_CDN_URL', 'https://cdn.tailwindcss.com'),
             'FLATPICKR_JS_ASSET_URL': app.config.get('FLATPICKR_JS_ASSET_URL', '/static/vendor/flatpickr.min.js'),
@@ -263,7 +275,7 @@ def create_app(config_class=Config):
     def unit_label_filter(code):
         return units.unit_label(code)
 
-    from app.routes import main, auth, vehicles, fuel, expenses, api, reminders, maintenance, documents, stations, recurring, homeassistant, calendar, trips, charging, admin, supplies, notes
+    from app.routes import main, auth, vehicles, fuel, expenses, api, reminders, maintenance, documents, stations, recurring, homeassistant, calendar, trips, charging, admin, supplies, notes, shopping
     app.register_blueprint(main.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(vehicles.bp)
@@ -282,6 +294,7 @@ def create_app(config_class=Config):
     app.register_blueprint(admin.bp)
     app.register_blueprint(supplies.bp)
     app.register_blueprint(notes.bp)
+    app.register_blueprint(shopping.bp)
 
     # Health check endpoint for container orchestration
     @app.route('/health')

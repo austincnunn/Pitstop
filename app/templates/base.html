@@ -114,6 +114,10 @@
             rootStyle.setProperty(`--primary-${key}`, value);
         });
     </script>
+    {% if TAILWIND_CSS_URL %}
+    <link rel="stylesheet" href="{{ TAILWIND_CSS_URL }}">
+    {% else %}
+    <!-- No compiled CSS (local dev without a build): compile in the browser -->
     <script>
         // Tailwind reads `tailwind.config` from a setter it installs on window.tailwind,
         // so this must run AFTER the library script below, not before.
@@ -145,6 +149,7 @@
     </script>
     <script src="{{ TAILWIND_ASSET_URL }}" onerror="window.__loadTailwindFallback()"></script>
     <script>window.__applyTailwindConfig();</script>
+    {% endif %}
     <!-- Flatpickr date picker - CSS with CDN fallback -->
     <link rel="stylesheet" href="{{ FLATPICKR_CSS_ASSET_URL }}" onerror="this.onerror=null;this.href='{{ FLATPICKR_CSS_CDN_URL }}';">
     <!-- Flatpickr JS with CDN fallback -->
@@ -313,7 +318,8 @@
                                                     (current_user.show_menu_stations is not defined or current_user.show_menu_stations) or
                                                     (current_user.show_menu_charging is not defined or current_user.show_menu_charging) or
                                                     (current_user.show_menu_supplies is not defined or current_user.show_menu_supplies) or
-                                                    (current_user.show_menu_notes is not defined or current_user.show_menu_notes) %}
+                                                    (current_user.show_menu_notes is not defined or current_user.show_menu_notes) or
+                                                    (current_user.show_menu_shopping is not defined or current_user.show_menu_shopping) %}
                             {% if show_more_menu %}
                             <div class="relative inline-flex items-center" id="more-menu-container">
                                 <button onclick="document.getElementById('more-dropdown').classList.toggle('hidden')" class="inline-flex items-center px-3 py-2 text-sm font-medium {% if 'maintenance' in request.endpoint or 'recurring' in request.endpoint or 'documents' in request.endpoint or 'stations' in request.endpoint %}text-primary-600 border-b-2 border-primary-600{% else %}text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white{% endif %}">
@@ -344,6 +350,9 @@
                                         {% endif %}
                                         {% if current_user.show_menu_notes is not defined or current_user.show_menu_notes %}
                                         <a href="{{ url_for('notes.index') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{{ _('Notes') }}</a>
+                                        {% endif %}
+                                        {% if current_user.show_menu_shopping is not defined or current_user.show_menu_shopping %}
+                                        <a href="{{ url_for('shopping.index') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{{ _('Shopping List') }}</a>
                                         {% endif %}
                                         <a href="{{ url_for('fuel.quick') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{{ _('Quick Fuel Entry') }}</a>
                                     </div>
@@ -435,6 +444,9 @@
                     {% endif %}
                     {% if current_user.show_menu_notes is not defined or current_user.show_menu_notes %}
                     <a href="{{ url_for('notes.index') }}" class="block px-4 py-2 text-base font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{{ _('Notes') }}</a>
+                    {% endif %}
+                    {% if current_user.show_menu_shopping is not defined or current_user.show_menu_shopping %}
+                    <a href="{{ url_for('shopping.index') }}" class="block px-4 py-2 text-base font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{{ _('Shopping List') }}</a>
                     {% endif %}
                     <a href="{{ url_for('fuel.quick') }}" class="block px-4 py-2 text-base font-medium text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700">{{ _('Quick Fuel Entry') }}</a>
                     <a href="{{ url_for('auth.settings') }}" class="block px-4 py-2 text-base font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{{ _('Settings') }}</a>

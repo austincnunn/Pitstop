@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Shopping List') }}{% endblock %}
+
+{% block content %}
+<div class="sm:flex sm:items-center sm:justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ _('Shopping List') }}</h1>
+        <p class="text-gray-500 dark:text-gray-400">{{ _('Parts and accessories to buy, grouped by project') }}</p>
+    </div>
+    <a href="{{ url_for('shopping.new_project', vehicle_id=filter_vehicle_id) }}"
+       class="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        {{ _('New Project') }}
+    </a>
+</div>
+
+<div class="mb-4 flex items-center gap-2">
+    <label for="vehicle_filter" class="text-sm text-gray-700 dark:text-gray-300">{{ _('Vehicle') }}:</label>
+    <select id="vehicle_filter" onchange="window.location.href = this.value ? '{{ url_for('shopping.index') }}?vehicle_id=' + this.value : '{{ url_for('shopping.index') }}'"
+            class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm px-3 py-1.5 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+        <option value="">{{ _('All Vehicles') }}</option>
+        {% for v in vehicles %}
+        <option value="{{ v.id }}" {% if filter_vehicle_id == v.id %}selected{% endif %}>{{ v.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+{% if projects %}
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for project in projects %}
+    {% set bought, total, spent, remaining = project.summary() %}
+    <a href="{{ url_for('shopping.project', project_id=project.id) }}"
+       class="block bg-white dark:bg-gray-800 shadow rounded-lg p-5 hover:ring-2 hover:ring-primary-500">
+        <div class="flex items-start justify-between gap-2">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">{{ project.name }}</h2>
+            <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                {{ dict(categories).get(project.category, project.category) }}
+            </span>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ project.vehicle.name }}</p>
+        <div class="mt-3 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+            <div class="h-2 bg-primary-600" style="width: {{ (bought / total * 100) if total else 0 }}%"></div>
+        </div>
+        <div class="mt-2 flex justify-between text-sm text-gray-600 dark:text-gray-300">
+            <span>{{ _('%(bought)s of %(total)s purchased', bought=bought, total=total) }}</span>
+            <span>{{ "%.2f"|format(spent) }} {{ current_user.currency }}</span>
+        </div>
+        {% if remaining %}
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Est. remaining') }}: {{ "%.2f"|format(remaining) }} {{ current_user.currency }}</p>
+        {% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+    </svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">{{ _('No projects yet') }}</h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ _('Create a project like "Exhaust work" and list the parts you need.') }}</p>
+</div>
+{% endif %}
+{% endblock %}

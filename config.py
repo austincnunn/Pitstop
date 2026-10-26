@@ -66,9 +66,16 @@ class Config:
     OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET')
     OIDC_SCOPES = os.environ.get('OIDC_SCOPES', 'openid email profile groups')
     OIDC_PROVIDER_NAME = os.environ.get('OIDC_PROVIDER_NAME', 'SSO')  # Button reads "Sign in with <name>"
+    # Overrides the whole button label, e.g. "Log in"
+    OIDC_BUTTON_TEXT = os.environ.get('OIDC_BUTTON_TEXT')
     # Absolute callback URL; only needed if Pitstop builds the wrong one behind a proxy
     OIDC_REDIRECT_URI = os.environ.get('OIDC_REDIRECT_URI')
     # Create a Pitstop account on first SSO login when no existing account matches
     OIDC_AUTO_REGISTER = os.environ.get('OIDC_AUTO_REGISTER', 'true').lower() == 'true'
     # If set, members of this group are Pitstop admins and everyone else is not (synced on every SSO login)
     OIDC_ADMIN_GROUP = os.environ.get('OIDC_ADMIN_GROUP')
+    # Make SSO the only way in: hides the password form, register and password reset.
+    # Ignored (password login stays on) if SSO isn't fully configured, so you can't lock yourself out.
+    OIDC_DISABLE_PASSWORD_LOGIN = os.environ.get('OIDC_DISABLE_PASSWORD_LOGIN', 'false').lower() == 'true'
+    # Send /auth/login straight to the provider; /auth/login?local=1 shows the page instead
+    OIDC_AUTO_REDIRECT = os.environ.get('OIDC_AUTO_REDIRECT', 'false').lower() == 'true'

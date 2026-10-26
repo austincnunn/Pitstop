@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+
+{% block content %}
+{% set input_cls = "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" %}
+{% set bought, total, spent, remaining = project.summary() %}
+
+<div class="mb-6">
+    <a href="{{ url_for('shopping.index') }}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">&larr; {{ _('Shopping List') }}</a>
+    <div class="sm:flex sm:items-start sm:justify-between mt-2">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ project.name }}</h1>
+            <p class="text-gray-500 dark:text-gray-400">
+                <a href="{{ url_for('vehicles.view', vehicle_id=project.vehicle_id) }}" class="text-primary-600 hover:text-primary-500">{{ project.vehicle.name }}</a>
+                &middot; {{ dict(categories).get(project.category, project.category) }}
+            </p>
+        </div>
+        <div class="mt-4 sm:mt-0 flex items-center gap-3">
+            <a href="{{ url_for('shopping.edit_project', project_id=project.id) }}"
+               class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">{{ _('Edit') }}</a>
+            <form method="POST" action="{{ url_for('shopping.delete_project', project_id=project.id) }}"
+                  onsubmit='return confirm({{ _("Delete this project? Its expense and receipts stay in Expenses.")|tojson }});'>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:text-red-800">{{ _('Delete') }}</button>
+            </form>
+        </div>
+    </div>
+    {% if project.notes %}
+    <p class="mt-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ project.notes }}</p>
+    {% endif %}
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Purchased') }}</p>
+        <p class="text-xl font-semibold text-gray-900 dark:text-white">{{ bought }} / {{ total }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Spent') }}</p>
+        <p class="text-xl font-semibold text-gray-900 dark:text-white">{{ "%.2f"|format(spent) }} {{ current_user.currency }}</p>
+        {% if project.expense %}
+        <a href="{{ url_for('expenses.edit', expense_id=project.expense_id) }}" class="text-xs text-primary-600 hover:text-primary-500">{{ _('View expense') }}</a>
+        {% endif %}
+    </div>
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ _('Est. remaining') }}</p>
+        <p class="text-xl font-semibold text-gray-900 dark:text-white">{{ "%.2f"|format(remaining) }} {{ current_user.currency }}</p>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
+    {% if items %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for item in items %}
+        <li class="px-4 sm:px-6 py-3 flex items-start gap-3">
+            {% if item.is_purchased %}
+            <form method="POST" action="{{ url_for('shopping.unpurchase_item', item_id=item.id) }}" class="pt-0.5">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="checkbox" checked aria-label="{{ _('Purchased') }}"
+                       onchange='if (confirm({{ _("Mark as not purchased? Its cost and receipts will be removed from the expense.")|tojson }})) { this.form.submit(); } else { this.checked = true; }'
+                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+            </form>
+            {% else %}
+            <div class="pt-0.5">
+                <input type="checkbox" aria-label="{{ _('Purchased') }}" data-purchase
+                       data-action="{{ url_for('shopping.purchase_item', item_id=item.id) }}"
+                       data-name="{{ item.name }}"
+                       data-price="{{ '%.2f'|format((item.est_price or 0) * (item.quantity or 1)) if item.est_price else '' }}"
+                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+            </div>
+            {% endif %}
+
+            <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-baseline gap-x-2">
+                    <span class="text-sm font-medium {% if item.is_purchased %}text-gray-500 dark:text-gray-400 line-through{% else %}text-gray-900 dark:text-white{% endif %}">{{ item.name }}</span>
+                    {% if item.quantity and item.quantity > 1 %}<span class="text-sm text-gray-500 dark:text-gray-400">&times;{{ item.quantity }}</span>{% endif %}
+                    {% if item.part_number %}<span class="text-xs text-gray-500 dark:text-gray-400">#{{ item.part_number }}</span>{% endif %}
+                    {% if item.url %}
+                    <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 hover:text-primary-500">{{ _('Link') }}</a>
+                    {% endif %}
+                </div>
+                {% if item.is_purchased %}
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ "%.2f"|format(item.purchased_price or 0) }} {{ current_user.currency }}
+                    &middot; {{ item.purchased_date|format_date }}
+                    {% if item.vendor %}&middot; {{ item.vendor }}{% endif %}
+                </p>
+                {% for receipt in item.receipts %}
+                <a href="{{ url_for('api.uploaded_file', filename=receipt.filename) }}" target="_blank"
+                   class="inline-flex items-center text-xs text-primary-600 hover:text-primary-500 mr-3">
+                    <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    {{ receipt.original_filename }}
+                </a>
+                {% endfor %}
+                {% elif item.est_price %}
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ _('Est.') }} {{ "%.2f"|format(item.est_price * (item.quantity or 1)) }} {{ current_user.currency }}</p>
+                {% endif %}
+                {% if item.notes %}<p class="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-wrap">{{ item.notes }}</p>{% endif %}
+            </div>
+
+            <div class="flex-shrink-0 flex items-center gap-3 text-sm">
+                <a href="{{ url_for('shopping.edit_item', item_id=item.id) }}" class="text-primary-600 hover:text-primary-900">{{ _('Edit') }}</a>
+                <form method="POST" action="{{ url_for('shopping.delete_item', item_id=item.id) }}" class="inline"
+                      onsubmit='return confirm({{ _("Delete this item?")|tojson }});'>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="text-red-600 hover:text-red-900">{{ _('Delete') }}</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">{{ _('No items yet. Add the first part below.') }}</p>
+    {% endif %}
+</div>
+
+<form method="POST" action="{{ url_for('shopping.add_item', project_id=project.id) }}"
+      class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 class="text-sm font-medium text-gray-900 dark:text-white mb-3">{{ _('Add item') }}</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
+        <div class="col-span-2 sm:col-span-3">
+            <label for="item_name" class="block text-xs text-gray-500 dark:text-gray-400">{{ _('Name') }} *</label>
+            <input type="text" name="name" id="item_name" required maxlength="200" placeholder="{{ _('e.g., Intake gasket') }}" class="{{ input_cls }}">
+        </div>
+        <div>
+            <label for="item_qty" class="block text-xs text-gray-500 dark:text-gray-400">{{ _('Qty') }}</label>
+            <input type="number" name="quantity" id="item_qty" min="1" value="1" class="{{ input_cls }}">
+        </div>
+        <div class="sm:col-span-2">
+            <label for="item_price" class="block text-xs text-gray-500 dark:text-gray-400">{{ _('Est. price each') }} ({{ current_user.currency }})</label>
+            <input type="number" name="est_price" id="item_price" step="0.01" min="0" class="{{ input_cls }}">
+        </div>
+        <div class="col-span-2 sm:col-span-2">
+            <label for="item_part" class="block text-xs text-gray-500 dark:text-gray-400">{{ _('Part number') }}</label>
+            <input type="text" name="part_number" id="item_part" maxlength="100" class="{{ input_cls }}">
+        </div>
+        <div class="col-span-2 sm:col-span-4">
+            <label for="item_url" class="block text-xs text-gray-500 dark:text-gray-400">{{ _('Link') }}</label>
+            <input type="url" name="url" id="item_url" maxlength="500" placeholder="https://" class="{{ input_cls }}">
+        </div>
+    </div>
+    <div class="mt-4 flex justify-end">
+        <button type="submit" class="px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">{{ _('Add item') }}</button>
+    </div>
+</form>
+
+<dialog id="purchase-dialog" class="rounded-lg shadow-xl p-0 w-full max-w-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white backdrop:bg-black/50">
+    <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h2 class="text-lg font-medium">{{ _('Mark as purchased') }}: <span data-dialog-name></span></h2>
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label for="purchased_price" class="block text-sm text-gray-700 dark:text-gray-300">{{ _('Price paid') }} ({{ current_user.currency }}) *</label>
+                <input type="number" name="purchased_price" id="purchased_price" required step="0.01" min="0" class="{{ input_cls }}">
+            </div>
+            <div>
+                <label for="purchased_date" class="block text-sm text-gray-700 dark:text-gray-300">{{ _('Date') }} *</label>
+                <input type="date" name="purchased_date" id="purchased_date" required value="{{ today.isoformat() }}" class="{{ input_cls }}">
+            </div>
+            <div class="col-span-2">
+                <label for="vendor" class="block text-sm text-gray-700 dark:text-gray-300">{{ _('Vendor') }}</label>
+                <input type="text" name="vendor" id="vendor" maxlength="100" class="{{ input_cls }}">
+            </div>
+            <div class="col-span-2">
+                <label for="receipt" class="block text-sm text-gray-700 dark:text-gray-300">{{ _('Receipt (for warranty)') }}</label>
+                <input type="file" name="receipt" id="receipt" accept="image/*,.pdf"
+                       class="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
+            </div>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">{{ _('The price is added to the project expense.') }}</p>
+        <div class="flex justify-end gap-3">
+            <button type="button" data-dialog-cancel
+                    class="px-4 py-2 border border-gray-300 dark:border-gray-500 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">{{ _('Cancel') }}</button>
+            <button type="submit" class="px-4 py-2 rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">{{ _('Save') }}</button>
+        </div>
+    </form>
+</dialog>
+
+<script>
+(function () {
+    var dialog = document.getElementById('purchase-dialog');
+    var form = dialog.querySelector('form');
+    var current = null;
+    document.querySelectorAll('[data-purchase]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            current = cb;
+            form.action = cb.dataset.action;
+            form.purchased_price.value = cb.dataset.price;
+            dialog.querySelector('[data-dialog-name]').textContent = cb.dataset.name;
+            dialog.showModal();
+        });
+    });
+    // Closing without saving (Cancel button or Esc) leaves the item unticked
+    dialog.querySelector('[data-dialog-cancel]').addEventListener('click', function () { dialog.close(); });
+    dialog.addEventListener('close', function () { if (current) current.checked = false; });
+})();
+</script>
+{% endblock %}
