@@ -734,6 +734,7 @@ EXPENSE_CATEGORIES = [
     ('tolls', _l('Tolls')),
     ('cleaning', _l('Cleaning')),
     ('accessories', _l('Accessories')),
+    ('upgrades', _l('Upgrades')),
     ('other', _l('Other'))
 ]
 

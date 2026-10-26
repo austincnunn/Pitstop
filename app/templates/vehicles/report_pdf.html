@@ -268,7 +268,7 @@
         </tr>
         <tr>
             <td>Powertrain</td>
-            <td style="text-transform: capitalize;">{{ vehicle.fuel_type or '-' }}</td>
+            <td>{{ vehicle.fuel_type|fuel_type_label if vehicle.fuel_type else '-' }}</td>
         </tr>
         {% if vehicle.tank_capacity %}
         <tr>
