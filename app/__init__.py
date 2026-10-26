@@ -97,6 +97,7 @@ def _run_schema_migrations(app):
             ('password_reset_expires', 'TIMESTAMP'),
             ('show_menu_supplies', 'BOOLEAN DEFAULT TRUE'),
             ('show_menu_notes', 'BOOLEAN DEFAULT TRUE'),
+            ('show_menu_shopping', 'BOOLEAN DEFAULT TRUE'),
             ('failed_login_attempts', 'INTEGER DEFAULT 0'),
             ('locked_until', 'TIMESTAMP'),
             ('dashboard_widget_order', 'VARCHAR(255)'),
@@ -111,6 +112,9 @@ def _run_schema_migrations(app):
         ],
         'charging_sessions': [
             ('tessie_charge_id', 'VARCHAR(50)'),
+        ],
+        'attachments': [
+            ('shopping_item_id', 'INTEGER'),
         ],
     }
 
@@ -271,7 +275,7 @@ def create_app(config_class=Config):
     def unit_label_filter(code):
         return units.unit_label(code)
 
-    from app.routes import main, auth, vehicles, fuel, expenses, api, reminders, maintenance, documents, stations, recurring, homeassistant, calendar, trips, charging, admin, supplies, notes
+    from app.routes import main, auth, vehicles, fuel, expenses, api, reminders, maintenance, documents, stations, recurring, homeassistant, calendar, trips, charging, admin, supplies, notes, shopping
     app.register_blueprint(main.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(vehicles.bp)
@@ -290,6 +294,7 @@ def create_app(config_class=Config):
     app.register_blueprint(admin.bp)
     app.register_blueprint(supplies.bp)
     app.register_blueprint(notes.bp)
+    app.register_blueprint(shopping.bp)
 
     # Health check endpoint for container orchestration
     @app.route('/health')

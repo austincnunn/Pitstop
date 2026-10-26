@@ -113,6 +113,7 @@ class User(UserMixin, db.Model):
     show_menu_charging = db.Column(db.Boolean, default=False)
     show_menu_supplies = db.Column(db.Boolean, default=True)
     show_menu_notes = db.Column(db.Boolean, default=True)
+    show_menu_shopping = db.Column(db.Boolean, default=True)
     show_quick_entry = db.Column(db.Boolean, default=True)  # Show quick entry button in navbar
 
     # Dashboard widget preferences
@@ -570,6 +571,8 @@ class Attachment(db.Model):
     vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'))
     fuel_log_id = db.Column(db.Integer, db.ForeignKey('fuel_logs.id'))
     expense_id = db.Column(db.Integer, db.ForeignKey('expenses.id'))
+    # Receipt for a shopping list item (also linked to the project's expense)
+    shopping_item_id = db.Column(db.Integer, db.ForeignKey('shopping_items.id'))
 
     description = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -1328,3 +1331,58 @@ class Supply(db.Model):
     quantity = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ShoppingProject(db.Model):
+    """A per-vehicle project grouping parts/accessories to buy"""
+    __tablename__ = 'shopping_projects'
+
+    id = db.Column(db.Integer, primary_key=True)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    category = db.Column(db.String(50), nullable=False, default='accessories')  # EXPENSE_CATEGORIES
+    notes = db.Column(db.Text)
+
+    # Single expense tracking the total of purchased items
+    expense_id = db.Column(db.Integer, db.ForeignKey('expenses.id'))
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    vehicle = db.relationship('Vehicle', backref=db.backref('shopping_projects', lazy='dynamic', cascade='all, delete-orphan'))
+    user = db.relationship('User', backref=db.backref('shopping_projects', lazy='dynamic'))
+    # Backref makes deleting the expense (web or API) null out expense_id here
+    expense = db.relationship('Expense', backref=db.backref('shopping_projects', lazy='dynamic'))
+    items = db.relationship('ShoppingItem', backref='project', lazy='dynamic',
+                            cascade='all, delete-orphan', order_by='ShoppingItem.id')
+
+    def summary(self):
+        """Return (purchased_count, total_count, spent, estimated_remaining)"""
+        items = self.items.all()
+        bought = [i for i in items if i.is_purchased]
+        spent = sum(i.purchased_price or 0 for i in bought)
+        remaining = sum((i.est_price or 0) * (i.quantity or 1) for i in items if not i.is_purchased)
+        return len(bought), len(items), spent, remaining
+
+
+class ShoppingItem(db.Model):
+    """A part or accessory on a shopping project"""
+    __tablename__ = 'shopping_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('shopping_projects.id'), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    part_number = db.Column(db.String(100))
+    url = db.Column(db.String(500))
+    quantity = db.Column(db.Integer, default=1)
+    est_price = db.Column(db.Float)  # per unit
+    notes = db.Column(db.Text)
+
+    is_purchased = db.Column(db.Boolean, default=False)
+    purchased_price = db.Column(db.Float)  # total paid
+    purchased_date = db.Column(db.Date)
+    vendor = db.Column(db.String(100))
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    receipts = db.relationship('Attachment', backref='shopping_item', lazy='dynamic')

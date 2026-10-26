@@ -46,6 +46,13 @@ Named Pitstop, because keeping on top of vehicle maintenance should be as quick 
 - **Home Assistant Integration**: Create sensors and automations for your vehicles
 - **Calendar Subscription**: Subscribe to reminders in Apple Calendar, Google Calendar, Outlook
 - **Docker Ready**: Easy self-hosting via Docker
+- **Trips & Mileage**: Track business and personal trips for tax and mileage reporting
+- **EV Charging**: Log charging sessions with energy, cost, and state of charge
+- **Parts & Supplies**: Track vehicle parts and consumable supplies
+- **Vehicle Notes**: Keep free-form notes per vehicle
+- **Tesla Integration (Tessie)**: Refresh odometer, battery, and range; import charging history
+- **Actual Budget Import**: Import expenses from an Actual Budget instance
+- **Automated Backups**: Scheduled backups to disk and email
 
 ## Installation
 
@@ -125,6 +132,15 @@ python run.py
 | `ADMIN_PASSWORD` | Password for the default admin account | Auto-generated |
 | `TAILWIND_ASSET_URL` | Local Tailwind Play CDN JS path | `/static/vendor/tailwindcss.js` |
 | `TAILWIND_CDN_URL` | Tailwind CDN fallback URL | `https://cdn.tailwindcss.com` |
+| `FLATPICKR_JS_ASSET_URL` | Local Flatpickr JS path | `/static/vendor/flatpickr.min.js` |
+| `FLATPICKR_JS_CDN_URL` | Flatpickr JS CDN fallback URL | `https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js` |
+| `FLATPICKR_CSS_ASSET_URL` | Local Flatpickr CSS path | `/static/vendor/flatpickr.min.css` |
+| `FLATPICKR_CSS_CDN_URL` | Flatpickr CSS CDN fallback URL | `https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css` |
+| `ADMIN_USERNAME` | Username for the default admin account (first run only) | `admin` |
+| `ADMIN_EMAIL` | Email for the default admin account (first run only) | `admin@example.com` |
+| `INTERNAL_API_KEY` | Secret used for internal/reverse-proxy requests | Auto-generated |
+| `SESSION_COOKIE_SECURE` | Send the session cookie only over HTTPS | `false` |
+| `RELEASE_CHANNEL` | Version display channel (`stable` or `dev`) | `stable` |
 | `OIDC_ENABLED` | Turn on single sign-on (see [Single Sign-On](#single-sign-on-oidc)) | `false` |
 | `OIDC_DISCOVERY_URL` | Provider's `.well-known/openid-configuration` URL | — |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Client credentials registered with your provider | — |
@@ -171,6 +187,24 @@ Categorize all vehicle-related costs:
 - Parking & Tolls
 - Accessories
 - Other expenses
+
+### Trips
+Track business and personal trips:
+- Date, start/end odometer, distance
+- Purpose and notes
+- Useful for mileage and tax reporting
+
+### EV Charging
+Track charging sessions for electric vehicles:
+- Charging location and energy (kWh)
+- State of charge before/after
+- Cost and charging duration
+- Import from Tessie for linked Tesla vehicles
+
+### Supplies
+Track consumable parts and supplies per vehicle:
+- Inventory quantities and restock notes
+- Link supplies to maintenance and expenses
 
 ### Reminders
 Never miss important dates:
@@ -224,6 +258,9 @@ Administrators can configure:
 - **DVLA API**: API key for UK vehicle lookups ([get one here](https://developer-portal.driver-vehicle-licensing.api.gov.uk/))
 - **Branding**: Custom logo, app name, tagline, and primary color
 - **User Management**: Create, edit, and manage user accounts
+- **Backups**: Schedule local backups and optional email delivery
+- **Tessie**: API token for Tesla vehicle data
+- **Actual Budget**: API URL, key, budget sync ID, and category mappings
 
 ## API
 
@@ -329,6 +366,18 @@ sensor:
 
 Available endpoints: `/api/ha/status`, `/api/ha/vehicles`, `/api/ha/alerts`, `/api/ha/summary`
 
+### Tessie (Tesla)
+Configure under Settings > Integrations > Tessie with your Tessie API token. Link a vehicle by its VIN to refresh odometer, battery level, and range on demand, and to import its charging history as EV charging sessions.
+
+### Actual Budget
+Import expenses from an Actual Budget instance via the `actual-http-api` sidecar (see the optional service in `docker-compose.yml`):
+
+1. Configure the API URL, API key, and budget sync ID under Settings > Integrations > Actual Budget.
+2. Map Actual Budget categories to a vehicle and expense category (Settings > Integrations > Actual Budget > Map categories).
+3. Trigger an import manually or let the hourly background sync run automatically.
+
+Imported transactions are deduplicated by their Actual Budget transaction ID.
+
 ### Calendar Subscription
 Subscribe to reminders in your calendar app:
 
@@ -371,7 +420,8 @@ Translations were generated with AI assistance and may contain inaccuracies. If 
 
 - **Backend**: Python / Flask
 - **Database**: SQLite (easily swappable)
-- **Frontend**: Tailwind CSS, Chart.js
+- **Frontend**: Tailwind CSS, Flatpickr, Chart.js
+- **i18n**: Flask-Babel
 - **Server**: Gunicorn
 - **Notifications**: SMTP, ntfy, Pushover, Webhooks
 - **PDF Generation**: WeasyPrint
