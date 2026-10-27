@@ -50,23 +50,39 @@
 
 <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
     {% if items %}
+    <form method="POST" action="{{ url_for('shopping.bulk_delete_items', project_id=project.id) }}" id="bulk-delete-form"
+          onsubmit='return confirm({{ _("Delete the selected items?")|tojson }});'
+          class="px-4 sm:px-6 py-2 flex items-center justify-between gap-3 border-b border-gray-200 dark:border-gray-700">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="flex items-center gap-3 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">
+            <input type="checkbox" id="select-all" class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">{{ _('Select all') }}
+        </label>
+        <button type="submit" id="bulk-delete-btn" disabled
+                class="text-sm font-medium text-red-600 hover:text-red-900 disabled:opacity-40 disabled:cursor-not-allowed">{{ _('Delete selected') }}</button>
+    </form>
     <ul class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for item in items %}
         <li class="px-4 sm:px-6 py-3 flex items-start gap-3">
+            <div class="pt-0.5 flex h-5 items-center">
+                <input type="checkbox" name="item_ids" value="{{ item.id }}" form="bulk-delete-form" data-select
+                       aria-label="{{ _('Select %(name)s', name=item.name) }}" class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+            </div>
             {% if item.is_purchased %}
             <form method="POST" action="{{ url_for('shopping.unpurchase_item', item_id=item.id) }}" class="pt-0.5">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="checkbox" checked aria-label="{{ _('Purchased') }}"
+                <label class="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">{{ _('Bought?') }}
+                <input type="checkbox" checked
                        onchange='if (confirm({{ _("Mark as not purchased? Its cost and receipts will be removed from the expense.")|tojson }})) { this.form.submit(); } else { this.checked = true; }'
-                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"></label>
             </form>
             {% else %}
             <div class="pt-0.5">
-                <input type="checkbox" aria-label="{{ _('Purchased') }}" data-purchase
+                <label class="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">{{ _('Bought?') }}
+                <input type="checkbox" data-purchase
                        data-action="{{ url_for('shopping.purchase_item', item_id=item.id) }}"
                        data-name="{{ item.name }}"
                        data-price="{{ '%.2f'|format((item.est_price or 0) * (item.quantity or 1)) if item.est_price else '' }}"
-                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"></label>
             </div>
             {% endif %}
 
@@ -227,6 +243,25 @@
     // Closing without saving (Cancel button or Esc) leaves the item unticked
     dialog.querySelector('[data-dialog-cancel]').addEventListener('click', function () { dialog.close(); });
     dialog.addEventListener('close', function () { if (current) current.checked = false; });
+})();
+
+(function () {
+    var selectAll = document.getElementById('select-all');
+    if (!selectAll) return;
+    var boxes = document.querySelectorAll('[data-select]');
+    var button = document.getElementById('bulk-delete-btn');
+    function refresh() {
+        var count = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+        selectAll.checked = count === boxes.length;
+        selectAll.indeterminate = count > 0 && count < boxes.length;
+        button.disabled = count === 0;
+    }
+    selectAll.addEventListener('change', function () {
+        boxes.forEach(function (b) { b.checked = selectAll.checked; });
+        refresh();
+    });
+    boxes.forEach(function (b) { b.addEventListener('change', refresh); });
+    refresh();
 })();
 </script>
 {% endblock %}

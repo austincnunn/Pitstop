@@ -192,3 +192,24 @@ def test_bulk_add_rejects_other_users_project(auth_client, admin_user):
 
     auth_client.post(f'/shopping/projects/{project.id}/items/bulk', data={'text': 'Sneaky part'})
     assert project.items.count() == 0
+
+
+def test_bulk_delete_selected_items(auth_client, sample_vehicle, test_user, admin_user):
+    project = _project(sample_vehicle, test_user)
+    pipe = _item(project, 'Downpipe', est_price=200)
+    clamp = _item(project, 'Clamp', est_price=10)
+    keep = _item(project, 'Gasket', est_price=5)
+    auth_client.post(f'/shopping/items/{pipe.id}/purchase', data={'purchased_date': '2026-10-01'})
+    auth_client.post(f'/shopping/items/{keep.id}/purchase', data={'purchased_date': '2026-10-01'})
+
+    other_vehicle = Vehicle(owner_id=admin_user.id, name='Admin Car', vehicle_type='car', fuel_type='petrol')
+    db.session.add(other_vehicle)
+    db.session.commit()
+    other = _item(_project(other_vehicle, admin_user), 'Not yours', est_price=1)
+
+    # Ids from another project are ignored; purchased items leave the expense
+    auth_client.post(f'/shopping/projects/{project.id}/items/delete',
+                     data={'item_ids': [pipe.id, clamp.id, other.id]})
+    assert [i.name for i in project.items] == ['Gasket']
+    assert db.session.get(ShoppingItem, other.id) is not None
+    assert Expense.query.one().cost == 5

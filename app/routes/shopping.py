@@ -395,6 +395,27 @@ def delete_item(item_id):
     return redirect(url_for('shopping.project', project_id=project.id))
 
 
+@bp.route('/projects/<int:project_id>/items/delete', methods=['POST'])
+@login_required
+def bulk_delete_items(project_id):
+    project = _get_accessible_project(project_id)
+    if not project:
+        flash(_('Access denied'), 'error')
+        return redirect(url_for('shopping.index'))
+
+    ids = request.form.getlist('item_ids', type=int)
+    items = project.items.filter(ShoppingItem.id.in_(ids)).all() if ids else []
+    for item in items:
+        for receipt in item.receipts.all():
+            _delete_receipt(receipt)
+        db.session.delete(item)
+    db.session.flush()
+    sync_project_expense(project)
+    db.session.commit()
+    flash(_('Deleted %(count)s items', count=len(items)), 'success')
+    return redirect(url_for('shopping.project', project_id=project.id))
+
+
 @bp.route('/items/<int:item_id>/purchase', methods=['POST'])
 @login_required
 def purchase_item(item_id):
