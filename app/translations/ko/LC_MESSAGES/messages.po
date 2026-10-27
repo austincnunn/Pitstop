@@ -2887,7 +2887,7 @@ msgid "Archived Vehicles"
 msgstr "모든 차량"
 
 #: app/templates/vehicles/index.html:8
-msgid "Manage your cars, vans, motorbikes, and scooters"
+msgid "Manage your cars, trucks, motorbikes, boats, and more"
 msgstr ""
 
 #: app/templates/vehicles/index.html:18
