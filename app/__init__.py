@@ -275,6 +275,12 @@ def create_app(config_class=Config):
     def unit_label_filter(code):
         return units.unit_label(code)
 
+    @app.template_filter('fuel_type_label')
+    def fuel_type_label_filter(code):
+        # Stored value 'petrol' displays as its translated label ("Gas" in English)
+        from app.models import FUEL_TYPES
+        return dict(FUEL_TYPES).get(code, (code or '').replace('_', ' ').title())
+
     from app.routes import main, auth, vehicles, fuel, expenses, api, reminders, maintenance, documents, stations, recurring, homeassistant, calendar, trips, charging, admin, supplies, notes, shopping
     app.register_blueprint(main.bp)
     app.register_blueprint(auth.bp)

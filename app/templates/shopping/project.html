@@ -50,23 +50,39 @@
 
 <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
     {% if items %}
+    <form method="POST" action="{{ url_for('shopping.bulk_delete_items', project_id=project.id) }}" id="bulk-delete-form"
+          onsubmit='return confirm({{ _("Delete the selected items?")|tojson }});'
+          class="px-4 sm:px-6 py-2 flex items-center justify-between gap-3 border-b border-gray-200 dark:border-gray-700">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="flex items-center gap-3 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">
+            <input type="checkbox" id="select-all" class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">{{ _('Select all') }}
+        </label>
+        <button type="submit" id="bulk-delete-btn" disabled
+                class="text-sm font-medium text-red-600 hover:text-red-900 disabled:opacity-40 disabled:cursor-not-allowed">{{ _('Delete selected') }}</button>
+    </form>
     <ul class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for item in items %}
         <li class="px-4 sm:px-6 py-3 flex items-start gap-3">
+            <div class="pt-0.5 flex h-5 items-center">
+                <input type="checkbox" name="item_ids" value="{{ item.id }}" form="bulk-delete-form" data-select
+                       aria-label="{{ _('Select %(name)s', name=item.name) }}" class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+            </div>
             {% if item.is_purchased %}
             <form method="POST" action="{{ url_for('shopping.unpurchase_item', item_id=item.id) }}" class="pt-0.5">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="checkbox" checked aria-label="{{ _('Purchased') }}"
+                <label class="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">{{ _('Bought?') }}
+                <input type="checkbox" checked
                        onchange='if (confirm({{ _("Mark as not purchased? Its cost and receipts will be removed from the expense.")|tojson }})) { this.form.submit(); } else { this.checked = true; }'
-                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"></label>
             </form>
             {% else %}
             <div class="pt-0.5">
-                <input type="checkbox" aria-label="{{ _('Purchased') }}" data-purchase
+                <label class="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">{{ _('Bought?') }}
+                <input type="checkbox" data-purchase
                        data-action="{{ url_for('shopping.purchase_item', item_id=item.id) }}"
                        data-name="{{ item.name }}"
                        data-price="{{ '%.2f'|format((item.est_price or 0) * (item.quantity or 1)) if item.est_price else '' }}"
-                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
+                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"></label>
             </div>
             {% endif %}
 
@@ -117,7 +133,13 @@
 <form method="POST" action="{{ url_for('shopping.add_item', project_id=project.id) }}"
       class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <h2 class="text-sm font-medium text-gray-900 dark:text-white mb-3">{{ _('Add item') }}</h2>
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h2 class="text-sm font-medium text-gray-900 dark:text-white">{{ _('Add item') }}</h2>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="document.getElementById('bulk-dialog').showModal()" class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">{{ _('Bulk add') }}</button>
+            <label for="import_file" class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">{{ _('Import CSV') }}</label>
+        </div>
+    </div>
     <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
         <div class="col-span-2 sm:col-span-3">
             <label for="item_name" class="block text-xs text-gray-500 dark:text-gray-400">{{ _('Name') }} *</label>
@@ -144,6 +166,33 @@
         <button type="submit" class="px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">{{ _('Add item') }}</button>
     </div>
 </form>
+
+<form method="POST" action="{{ url_for('shopping.bulk_add_items', project_id=project.id) }}" enctype="multipart/form-data" class="hidden">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="file" name="file" id="import_file" accept=".csv,text/csv" onchange="if (this.files.length) this.form.submit();">
+</form>
+
+<dialog id="bulk-dialog" class="rounded-lg shadow-xl p-0 w-full max-w-2xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white backdrop:bg-black/50">
+    <form method="POST" action="{{ url_for('shopping.bulk_add_items', project_id=project.id) }}" class="p-6 space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h2 class="text-lg font-medium">{{ _('Bulk add items') }}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            {{ _('One item per line: name, qty, price each, part number, link, notes. Only the name is required. You can also paste rows from a spreadsheet, or include a header row to use any column order.') }}
+        </p>
+        <textarea name="text" rows="12" required
+                  placeholder="Intake gasket, 2, 12.50, IG-44&#10;Throttle body spacer, 1, 89.99&#10;Vacuum caps"
+                  class="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 font-mono text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"></textarea>
+        <div class="flex items-center justify-between gap-3">
+            <a href="data:text/csv;charset=utf-8,name%2Cqty%2Cprice%2Cpart%20number%2Clink%2Cnotes%0AIntake%20gasket%2C2%2C12.50%2CIG-44%2C%2C" download="shopping-list-template.csv"
+               class="text-sm text-primary-600 hover:text-primary-500">{{ _('Download CSV template') }}</a>
+            <div class="flex gap-3">
+                <button type="button" onclick="this.closest('dialog').close()"
+                        class="px-4 py-2 border border-gray-300 dark:border-gray-500 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">{{ _('Cancel') }}</button>
+                <button type="submit" class="px-4 py-2 rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">{{ _('Add items') }}</button>
+            </div>
+        </div>
+    </form>
+</dialog>
 
 <dialog id="purchase-dialog" class="rounded-lg shadow-xl p-0 w-full max-w-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white backdrop:bg-black/50">
     <form method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
@@ -194,6 +243,25 @@
     // Closing without saving (Cancel button or Esc) leaves the item unticked
     dialog.querySelector('[data-dialog-cancel]').addEventListener('click', function () { dialog.close(); });
     dialog.addEventListener('close', function () { if (current) current.checked = false; });
+})();
+
+(function () {
+    var selectAll = document.getElementById('select-all');
+    if (!selectAll) return;
+    var boxes = document.querySelectorAll('[data-select]');
+    var button = document.getElementById('bulk-delete-btn');
+    function refresh() {
+        var count = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+        selectAll.checked = count === boxes.length;
+        selectAll.indeterminate = count > 0 && count < boxes.length;
+        button.disabled = count === 0;
+    }
+    selectAll.addEventListener('change', function () {
+        boxes.forEach(function (b) { b.checked = selectAll.checked; });
+        refresh();
+    });
+    boxes.forEach(function (b) { b.addEventListener('change', refresh); });
+    refresh();
 })();
 </script>
 {% endblock %}

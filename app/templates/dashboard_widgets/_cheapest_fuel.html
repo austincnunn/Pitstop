@@ -14,7 +14,7 @@
             {% endif %}
             <div>
                 <p class="text-sm font-medium text-gray-900 dark:text-white truncate" style="max-width: 120px;">{{ price.station.name }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 capitalize">{{ price.fuel_type }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 ">{{ price.fuel_type|fuel_type_label }}</p>
             </div>
         </div>
         <p class="text-sm font-semibold {% if loop.index == 1 %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">

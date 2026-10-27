@@ -4,33 +4,44 @@ A modern, self-hosted vehicle management application for tracking fuel consumpti
 
 Named Pitstop, because keeping on top of vehicle maintenance should be as quick and painless as a pit stop.
 
+Pitstop is a hard fork of [May](https://github.com/dannymcc/may) by Danny McClelland.
+
 ## Screenshots
 
 <p align="center">
   <img src="screenshots/dashboard.png" alt="Dashboard" width="45%">
+  <img src="screenshots/dark_mode.png" alt="Dashboard in dark mode" width="45%">
+</p>
+<p align="center">
   <img src="screenshots/vehicles.png" alt="Vehicles" width="45%">
-</p>
-<p align="center">
   <img src="screenshots/vehicle_details.png" alt="Vehicle Details" width="45%">
-  <img src="screenshots/integrations.png" alt="Integrations" width="45%">
 </p>
 <p align="center">
+  <img src="screenshots/fuel_logs.png" alt="Fuel Logs" width="45%">
+  <img src="screenshots/shopping_list.png" alt="Shopping List project" width="45%">
+</p>
+<p align="center">
+  <img src="screenshots/integrations.png" alt="Integrations" width="45%">
   <img src="screenshots/import_export.png" alt="Import/Export" width="45%">
 </p>
 
 ## Features
 
-- **Multi-Vehicle Support**: Track cars, vans, motorbikes, and scooters with custom vehicle types
-- **Fuel Logging**: Record fill-ups with automatic consumption calculations (L/100km, MPG)
+- **Multi-Vehicle Support**: Track cars, trucks, SUVs, vans, motorbikes, scooters, ATVs/UTVs, tractors, and boats, with gas, diesel, hybrid, or electric powertrains
+- **Fuel Logging**: Record fill-ups with fuel grade and automatic consumption calculations (MPG, L/100km)
 - **Quick Entry Mode**: Rapid fuel logging with a streamlined interface
+- **Customizable Dashboard**: Rearrange or hide widgets for spending, cheapest fuel, recent activity, and fuel cost by grade
+- **Vehicle Timeline & Sharing**: See a vehicle's fill-ups, charging, and expenses in one timeline; share or archive vehicles
 - **Expense Tracking**: Monitor maintenance, insurance, repairs, tax, and other costs by category
 - **Recurring Expenses**: Track regular payments like insurance, tax, and subscriptions
 - **Maintenance Schedules**: Plan and track scheduled maintenance with mileage/date intervals
 - **Reminders**: Set up recurring reminders for MOT, service, insurance, and tax renewals
 - **Multi-Channel Notifications**: Get reminded via Email, ntfy, Pushover, or Webhooks
 - **Document Storage**: Store important documents (insurance, registration, manuals) per vehicle
-- **Favorite Stations**: Save and quickly select your preferred fuel stations
+- **Fuel Stations & Prices**: Save favorite stations, track price history, and see which is cheapest
+- **Shopping List**: Plan parts and accessories per vehicle, grouped into projects; tick items off as you buy them, attach receipts, and the cost lands in Expenses automatically
 - **Multi-User**: Share vehicles between family members or team members
+- **Single Sign-On**: Log in with any OpenID Connect provider (Authelia, Authentik, Keycloak, …)
 - **Analytics Dashboard**: View spending trends and consumption statistics with interactive charts
 - **Attachment Support**: Upload receipts and documents to fuel logs and expenses
 - **PDF Reports**: Generate comprehensive vehicle reports for record-keeping
@@ -39,7 +50,7 @@ Named Pitstop, because keeping on top of vehicle maintenance should be as quick 
 - **Internationalization**: Available in multiple languages (English, German, Spanish, French, and more)
 - **Custom Branding**: Personalize with your own logo, colors, and app name
 - **Dark Mode**: Toggle between light and dark themes
-- **Import/Export**: Import from Fuelly CSV, export all data as JSON or CSV
+- **Import/Export**: Import from Hammond, Clarkson, Fuelly, or any CSV with column mapping; export as CSV, JSON, or a full ZIP backup you can restore
 - **DVLA Integration**: Look up UK vehicle MOT and tax status automatically
 - **PWA Support**: Install as a mobile app with offline capabilities
 - **REST API**: Full API access for integrations and automation
@@ -48,11 +59,12 @@ Named Pitstop, because keeping on top of vehicle maintenance should be as quick 
 - **Docker Ready**: Easy self-hosting via Docker
 - **Trips & Mileage**: Track business and personal trips for tax and mileage reporting
 - **EV Charging**: Log charging sessions with energy, cost, and state of charge
-- **Parts & Supplies**: Track vehicle parts and consumable supplies
+- **Parts & Supplies**: Record the parts each vehicle takes (oil spec, filters, part numbers) and keep a supplies inventory
 - **Vehicle Notes**: Keep free-form notes per vehicle
 - **Tesla Integration (Tessie)**: Refresh odometer, battery, and range; import charging history
 - **Actual Budget Import**: Import expenses from an Actual Budget instance
-- **Automated Backups**: Scheduled backups to disk and email
+- **Automated Backups**: Scheduled backups to disk and email, including a full `pg_dump` when running on PostgreSQL
+- **PostgreSQL or SQLite**: PostgreSQL recommended; SQLite works for small single-user setups
 
 ## Installation
 
@@ -106,6 +118,10 @@ docker logs pitstop
 
 **Tip:** Set `ADMIN_PASSWORD` in your docker-compose.yml or environment to use a fixed password.
 
+### Upgrading from Willman
+
+Pitstop was previously published as "Willman". Change the image in your compose file or run command from `ghcr.io/austincnunn/willman` to `ghcr.io/austincnunn/pitstop`. On first start the container renames an existing `willman.db` to `pitstop.db` and fixes file ownership automatically. Keep your existing bind-mount path. Previously issued API keys with the `willman_` prefix keep working.
+
 ### Manual Installation
 
 ```bash
@@ -155,44 +171,52 @@ python run.py
 
 `SECRET_KEY` is automatically generated and stored on first startup — you do not need to set it manually. If you want a fixed key (e.g. to keep sessions alive across container restarts), you can provide it as an environment variable.
 
-By default, Tailwind loads from `app/static/vendor/tailwindcss.js` and falls back to the CDN URL if the local asset is missing.
+The Docker image ships with Tailwind CSS compiled at build time. The `TAILWIND_*` variables only matter when running from source without a compiled `app/static/css/tailwind.css`: Tailwind then compiles in the browser from `app/static/vendor/tailwindcss.js`, falling back to the CDN URL if that file is missing.
 
 ## Usage
 
 ### Dashboard
 The main dashboard shows an overview of all your vehicles with key statistics:
-- Total fuel costs and consumption averages
+- Total fuel cost, other expenses, distance, and cost per mile/km
+- Monthly spending chart and fuel cost by grade
+- Cheapest fuel among your saved stations
 - Recent fuel logs and expenses
-- Upcoming reminders and overdue alerts
+
+Use **Edit Layout** to reorder or hide widgets.
 
 ### Vehicles
 Add and manage your vehicles with detailed information:
-- Make, model, year, and registration
-- Fuel type and tank capacity
-- Custom specifications and notes
+- Make, model, year, registration, and VIN
+- Powertrain, tank or battery capacity, and default fuel grade
+- Custom specifications, parts, and notes
 - Photo upload support
+- A timeline of fill-ups, charging sessions, and expenses
+- PDF report, sharing with other users, and archiving vehicles you've sold
 
 ### Fuel Logs
 Track every fill-up with:
 - Date, odometer reading, and fuel amount
-- Total cost and price per unit
-- Full tank indicator for accurate consumption calculations
+- Total cost, price per unit, and fuel grade (Regular, Plus, Premium, E85, E15, Diesel)
+- Full tank and missed fill-up flags for accurate consumption calculations
 - Automatic MPG/L per 100km calculations
 
 ### Expenses
 Categorize all vehicle-related costs:
 - Maintenance & Repairs
 - Insurance
-- Tax & Registration
+- Road Tax & Registration
 - Parking & Tolls
-- Accessories
+- Cleaning
+- Accessories & Upgrades
 - Other expenses
+
+Attach receipts (images or PDFs) to any expense.
 
 ### Trips
 Track business and personal trips:
 - Date, start/end odometer, distance
-- Purpose and notes
-- Useful for mileage and tax reporting
+- Purpose (business, personal, commute, medical, charity) and notes
+- Trip report for mileage and tax reporting
 
 ### EV Charging
 Track charging sessions for electric vehicles:
@@ -201,10 +225,17 @@ Track charging sessions for electric vehicles:
 - Cost and charging duration
 - Import from Tessie for linked Tesla vehicles
 
-### Supplies
-Track consumable parts and supplies per vehicle:
-- Inventory quantities and restock notes
-- Link supplies to maintenance and expenses
+### Parts & Supplies
+- **Parts** (per vehicle): what the vehicle takes, such as engine oil spec and quantity, filters, plugs, and brake parts, with part numbers and supplier links
+- **Supplies**: a simple inventory of consumables you keep on hand
+
+### Shopping List
+Plan purchases for a vehicle, split into projects (e.g. "Intake manifold swap", "Exhaust work"):
+- Items with quantity, estimated price, part number, and link
+- **Bulk add** by pasting lines or spreadsheet rows, or **Import CSV**
+- Tick **Bought?** to record the price paid, date, vendor, and a receipt for warranty claims
+- Each project keeps a single expense in sync with what you've bought
+- Select items to delete several at once
 
 ### Reminders
 Never miss important dates:
@@ -240,7 +271,8 @@ Store important vehicle documents:
 ### Fuel Stations
 Save your favorite stations:
 - Quick selection during fuel logging
-- Track prices at different stations
+- Price history per station, recorded from your fill-ups
+- **Cheapest Fuel** view ranking stations by latest price
 - Notes and location information
 
 ### Notifications
@@ -257,8 +289,8 @@ Administrators can configure:
 - **Pushover**: Application token for push notifications
 - **DVLA API**: API key for UK vehicle lookups ([get one here](https://developer-portal.driver-vehicle-licensing.api.gov.uk/))
 - **Branding**: Custom logo, app name, tagline, and primary color
-- **User Management**: Create, edit, and manage user accounts
-- **Backups**: Schedule local backups and optional email delivery
+- **User Management**: Create, edit, and manage user accounts, and turn self-registration on or off
+- **Backups**: Schedule local backups (with retention) and optional email delivery
 - **Tessie**: API token for Tesla vehicle data
 - **Actual Budget**: API URL, key, budget sync ID, and category mappings
 
@@ -272,7 +304,7 @@ curl -H "Authorization: Bearer pitstop_your_api_key" \
   http://localhost:5151/api/v1/vehicles
 ```
 
-See the API documentation at `/api/docs` when logged in.
+Endpoints cover vehicles, fuel logs, and expenses (`/api/v1/vehicles`, `/api/v1/vehicles/<id>/fuel`, `/api/v1/vehicles/<id>/expenses`, `/api/v1/categories`). See the full API documentation at `/api/docs` when logged in.
 
 ## Single Sign-On (OIDC)
 
@@ -364,7 +396,7 @@ sensor:
       - total_cost
 ```
 
-Available endpoints: `/api/ha/status`, `/api/ha/vehicles`, `/api/ha/alerts`, `/api/ha/summary`
+Available endpoints: `/api/ha/status`, `/api/ha/vehicles`, `/api/ha/vehicles/<id>`, `/api/ha/vehicles/<id>/stats`, `/api/ha/alerts`, `/api/ha/summary`, and `POST /api/ha/fuel/add` to log a fill-up from an automation.
 
 ### Tessie (Tesla)
 Configure under Settings > Integrations > Tessie with your Tessie API token. Link a vehicle by its VIN to refresh odometer, battery level, and range on demand, and to import its charging history as EV charging sessions.
@@ -418,8 +450,8 @@ Translations were generated with AI assistance and may contain inaccuracies. If 
 
 ## Tech Stack
 
-- **Backend**: Python / Flask
-- **Database**: SQLite (easily swappable)
+- **Backend**: Python / Flask, SQLAlchemy, Flask-Migrate (Alembic)
+- **Database**: PostgreSQL (recommended) or SQLite
 - **Frontend**: Tailwind CSS, Flatpickr, Chart.js
 - **i18n**: Flask-Babel
 - **Server**: Gunicorn
@@ -434,9 +466,9 @@ Translations were generated with AI assistance and may contain inaccuracies. If 
 - Check logs for specific error messages
 
 ### Database Issues
-- Default SQLite database is created at `data/pitstop.db`
-- Ensure the directory exists and is writable
-- For schema updates, the app handles migrations automatically
+- With no `DATABASE_URL`, a SQLite database is created at `data/pitstop.db` (`/app/data/pitstop.db` in Docker); ensure the directory is writable
+- With PostgreSQL, check the `postgres` container is healthy and that `DATABASE_URL` matches its user, password, and database name
+- Migrations run automatically when the container starts; check the container logs if startup fails
 
 ### Notification Issues
 - **Email**: Verify SMTP settings and credentials in admin settings
@@ -463,6 +495,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Pitstop is based on [May](https://github.com/dannymcc/may), copyright (c) 2026 Danny McClelland, also released under the MIT License. The original copyright notice is kept in [LICENSE](LICENSE) as that license requires.
 
 ## Support
 
