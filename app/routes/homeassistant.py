@@ -382,6 +382,7 @@ def add_fuel(user):
     try:
         fuel_log = FuelLog(
             vehicle_id=data['vehicle_id'],
+            user_id=user.id,
             date=date.fromisoformat(data['date']),
             odometer=float(data['odometer']),
             volume=float(data['volume']),

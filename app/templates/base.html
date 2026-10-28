@@ -462,6 +462,22 @@
 
         <main class="py-6">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                {% if UPDATE_LATEST %}
+                <div id="update-banner" data-version="{{ UPDATE_LATEST }}" class="mb-4 rounded-md p-4 flex items-center justify-between gap-4 bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200">
+                    <p class="text-sm">
+                        {{ _('%(app)s %(version)s is available.', app=APP_NAME, version=UPDATE_LATEST) }}
+                        {% if UPDATE_URL %}<a href="{{ UPDATE_URL }}" target="_blank" rel="noopener" class="font-medium underline">{{ _("What's new") }}</a>{% endif %}
+                    </p>
+                    <button type="button" aria-label="{{ _('Dismiss') }}" class="text-lg leading-none hover:opacity-70"
+                            onclick="try { localStorage.setItem('dismissedUpdate', this.parentNode.dataset.version); } catch (e) {} this.parentNode.remove();">&times;</button>
+                </div>
+                <script>
+                    try {
+                        var ub = document.getElementById('update-banner');
+                        if (localStorage.getItem('dismissedUpdate') === ub.dataset.version) ub.remove();
+                    } catch (e) {}
+                </script>
+                {% endif %}
                 {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                 <div class="mb-4 space-y-2">
@@ -565,6 +581,21 @@
                 form.insertBefore(input, form.firstChild);
             });
         }
+
+        // Same-origin fetch() writes carry the token as a header (JSON bodies have no form field)
+        var nativeFetch = window.fetch;
+        window.fetch = function(input, init) {
+            init = init || {};
+            var isRequest = input instanceof Request;
+            var method = (init.method || (isRequest ? input.method : 'GET')).toUpperCase();
+            var url = new URL(isRequest ? input.url : input, window.location.href);
+            if (method !== 'GET' && method !== 'HEAD' && url.origin === window.location.origin) {
+                var headers = new Headers(init.headers || (isRequest ? input.headers : undefined));
+                if (!headers.has('X-CSRFToken')) headers.set('X-CSRFToken', csrfToken);
+                init.headers = headers;
+            }
+            return nativeFetch.call(this, input, init);
+        };
 
         // Inject tokens immediately for forms rendered on initial load
         injectCSRFTokens();

@@ -8,7 +8,7 @@ services:
     volumes:
       - /user/appdata/pitstop:/app/data
     environment:
-      - DATABASE_URL=postgresql+psycopg://pitstop:changeme@postgres:5432/pitstop
+      - DATABASE_URL=postgresql+psycopg://pitstop:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/pitstop
       - UPLOAD_FOLDER=/app/data/uploads
     depends_on:
       postgres:
@@ -23,7 +23,7 @@ services:
     environment:
       - POSTGRES_DB=pitstop
       - POSTGRES_USER=pitstop
-      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pitstop -d pitstop"]
       interval: 5s

@@ -1,12 +1,46 @@
 """Notification service for sending reminders via various methods."""
+import ipaddress
 import smtplib
+import socket
 import json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-from urllib.request import urlopen, Request
+from urllib.parse import urlsplit
+from urllib.request import urlopen, Request, build_opener, HTTPRedirectHandler
 from urllib.error import URLError, HTTPError
 from app.models import AppSettings
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    """Don't follow redirects, so a public URL can't bounce the request onto the internal network."""
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_user_url_opener = build_opener(_NoRedirect)
+
+
+def _user_url_error(url, allow_private):
+    """Why a user-supplied notification URL can't be used, or None if it can.
+
+    Non-admin users may only reach public addresses, so they can't use the server to probe
+    the private network. Admins may target LAN services such as Home Assistant.
+    """
+    parts = urlsplit(url)
+    if parts.scheme not in ('http', 'https') or not parts.hostname:
+        return "URL must use http or https"
+    if allow_private:
+        return None
+    # ponytail: checks the address at send time, then connects separately; DNS rebinding between
+    # the two is possible. Pin the resolved IP on the connection if that ever matters here.
+    try:
+        infos = socket.getaddrinfo(parts.hostname, parts.port or 443, proto=socket.IPPROTO_TCP)
+    except (socket.gaierror, ValueError):
+        return f"Could not resolve {parts.hostname}"
+    if any(not ipaddress.ip_address(info[4][0].split('%')[0]).is_global for info in infos):
+        return "Only admins can send notifications to private or local network addresses"
+    return None
 
 
 class NotificationService:
@@ -78,10 +112,13 @@ class NotificationService:
             return False, str(e)
 
     @staticmethod
-    def send_webhook(webhook_url, payload):
+    def send_webhook(webhook_url, payload, allow_private=False):
         """Send a notification via webhook (HTTP POST with JSON)."""
         if not webhook_url:
             return False, "Webhook URL not configured"
+        error = _user_url_error(webhook_url, allow_private)
+        if error:
+            return False, error
 
         try:
             data = json.dumps(payload).encode('utf-8')
@@ -89,7 +126,7 @@ class NotificationService:
                 'Content-Type': 'application/json',
                 'User-Agent': 'Pitstop-Vehicle-Manager/1.0'
             })
-            with urlopen(req, timeout=10) as response:
+            with _user_url_opener.open(req, timeout=10) as response:
                 return True, None
         except HTTPError as e:
             return False, f"HTTP {e.code}: {e.reason}"
@@ -99,25 +136,28 @@ class NotificationService:
             return False, str(e)
 
     @staticmethod
-    def send_ntfy(topic, title, message, priority='default'):
+    def send_ntfy(topic, title, message, priority='default', allow_private=False):
         """Send a notification via ntfy.sh or self-hosted ntfy server."""
         if not topic:
             return False, "ntfy topic not configured"
 
-        try:
-            # Determine URL - if it looks like a URL, use it directly
-            if topic.startswith('http://') or topic.startswith('https://'):
-                url = topic
-            else:
-                url = f"https://ntfy.sh/{topic}"
+        # Determine URL - if it looks like a URL, use it directly
+        if topic.startswith('http://') or topic.startswith('https://'):
+            url = topic
+            error = _user_url_error(url, allow_private)
+            if error:
+                return False, error
+        else:
+            url = f"https://ntfy.sh/{topic}"
 
+        try:
             data = message.encode('utf-8')
             req = Request(url, data=data, headers={
                 'Title': title,
                 'Priority': priority,
                 'Tags': 'car',
             })
-            with urlopen(req, timeout=10) as response:
+            with _user_url_opener.open(req, timeout=10) as response:
                 return True, None
         except HTTPError as e:
             return False, f"HTTP {e.code}: {e.reason}"
@@ -209,10 +249,10 @@ class NotificationService:
             return NotificationService.send_email(user.email, title, message, html_body)
 
         elif method == 'webhook':
-            return NotificationService.send_webhook(user.webhook_url, payload)
+            return NotificationService.send_webhook(user.webhook_url, payload, allow_private=user.is_admin)
 
         elif method == 'ntfy':
-            return NotificationService.send_ntfy(user.ntfy_topic, title, message)
+            return NotificationService.send_ntfy(user.ntfy_topic, title, message, allow_private=user.is_admin)
 
         elif method == 'pushover':
             return NotificationService.send_pushover(user.pushover_user_key, title, message)

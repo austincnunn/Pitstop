@@ -196,9 +196,10 @@ def create_app(config_class=Config):
     csrf.init_app(app)
     babel.init_app(app, locale_selector=get_locale)
 
-    # Exempt API endpoints from CSRF (they use API key auth)
-    from app.routes import api
+    # Exempt API endpoints from CSRF (they use API key auth; api.bp still checks browser-session requests itself)
+    from app.routes import api, homeassistant
     csrf.exempt(api.bp)
+    csrf.exempt(homeassistant.bp)
 
     from app.models import User, AppSettings
 
@@ -220,7 +221,13 @@ def create_app(config_class=Config):
     @app.context_processor
     def inject_globals():
         branding = AppSettings.get_all_branding()
+        update_latest = update_url = None
+        if current_user and current_user.is_authenticated and current_user.is_admin:
+            update_latest = AppSettings.get('update_latest')
+            update_url = AppSettings.get('update_url')
         return {
+            'UPDATE_LATEST': update_latest,
+            'UPDATE_URL': update_url,
             'LANGUAGES': LANGUAGES,
             'APP_NAME': branding.get('app_name', 'Pitstop'),
             'APP_TAGLINE': branding.get('app_tagline', 'Maintenance Tracker'),
@@ -307,6 +314,23 @@ def create_app(config_class=Config):
     def health_check():
         return {'status': 'healthy'}, 200
 
+    from urllib.parse import urlsplit
+    cdns = ' '.join(sorted({
+        '{0.scheme}://{0.netloc}'.format(urlsplit(app.config.get(key) or ''))
+        for key in ('TAILWIND_CDN_URL', 'FLATPICKR_JS_CDN_URL', 'FLATPICKR_CSS_CDN_URL')
+        if urlsplit(app.config.get(key) or '').netloc
+    } | {'https://cdn.jsdelivr.net'}))
+    csp = (
+        "default-src 'self'; "
+        f"script-src 'self' 'unsafe-inline' {cdns}; "
+        f"style-src 'self' 'unsafe-inline' {cdns} https://fonts.googleapis.com; "
+        "font-src 'self' data: https://fonts.gstatic.com; "
+        "img-src 'self' data: blob:; "
+        # The service worker re-fetches CDN assets, and its fetches fall under connect-src
+        f"connect-src 'self' {cdns} https://fonts.googleapis.com https://fonts.gstatic.com; "
+        "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+    )
+
     # Security headers
     @app.after_request
     def add_security_headers(response):
@@ -320,6 +344,9 @@ def create_app(config_class=Config):
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         # Permissions policy (formerly feature policy)
         response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+        # Content Security Policy: scripts/styles only from here and the CDNs we use; no third-party
+        # images, connections, plugins or framing. Inline scripts stay allowed because templates use them.
+        response.headers['Content-Security-Policy'] = csp
         return response
 
     with app.app_context():
@@ -353,6 +380,8 @@ def create_app(config_class=Config):
         _start_reminder_scheduler(app)
         _start_backup_scheduler(app)
         _start_actual_sync_scheduler(app)
+        if app.config.get('UPDATE_CHECK_ENABLED'):
+            _start_update_check_scheduler(app)
 
     return app
 
@@ -442,3 +471,30 @@ def _start_actual_sync_scheduler(app):
     thread = threading.Thread(target=actual_sync_loop, daemon=True, name='actual-sync-scheduler')
     thread.start()
     app.logger.info("Started background Actual Budget sync scheduler (hourly checks)")
+
+
+def _start_update_check_scheduler(app):
+    """Start a background thread that checks GitHub for a newer version every 6 hours."""
+    import threading
+    import time
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    def update_check_loop():
+        time.sleep(30)
+
+        while True:
+            try:
+                with app.app_context():
+                    from app.services.update_check import run_update_check_tick
+                    run_update_check_tick()
+            except Exception as e:
+                logger.error('Error in update check scheduler: %s', e)
+
+            # Each worker runs its own loop; 6h keeps well under GitHub's 60 unauthenticated requests/hour
+            time.sleep(6 * 3600)
+
+    thread = threading.Thread(target=update_check_loop, daemon=True, name='update-check-scheduler')
+    thread.start()
+    app.logger.info("Started background update check scheduler (6-hourly checks)")

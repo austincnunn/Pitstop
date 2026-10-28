@@ -79,6 +79,9 @@ mkdir pitstop && cd pitstop
 # Download docker-compose.yml
 curl -O https://raw.githubusercontent.com/austincnunn/Pitstop/main/docker-compose.yml
 
+# Generate a database password (hex, so it's safe inside DATABASE_URL)
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
+
 # Start the containers
 docker compose up -d
 ```
@@ -156,7 +159,8 @@ python run.py
 | `ADMIN_EMAIL` | Email for the default admin account (first run only) | `admin@example.com` |
 | `INTERNAL_API_KEY` | Secret used for internal/reverse-proxy requests | Auto-generated |
 | `SESSION_COOKIE_SECURE` | Send the session cookie only over HTTPS | `false` |
-| `RELEASE_CHANNEL` | Version display channel (`stable` or `dev`) | `stable` |
+| `RELEASE_CHANNEL` | Update channel (`stable` or `dev`); `dev` builds also alert admins to new dev-branch commits | `stable` |
+| `DISABLE_UPDATE_CHECK` | Stop checking GitHub every 6 hours for a newer version (admins see a banner when one exists) | `false` |
 | `OIDC_ENABLED` | Turn on single sign-on (see [Single Sign-On](#single-sign-on-oidc)) | `false` |
 | `OIDC_DISCOVERY_URL` | Provider's `.well-known/openid-configuration` URL | — |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Client credentials registered with your provider | — |
@@ -281,6 +285,8 @@ Configure your preferred notification method:
 - **ntfy**: Free push notifications via ntfy.sh or self-hosted
 - **Pushover**: iOS/Android push notifications
 - **Webhook**: HTTP POST for Home Assistant, Discord, Slack, etc.
+
+Only admins can point webhook or self-hosted ntfy URLs at private/local network addresses; other users are limited to public addresses.
 
 ## Admin Settings
 

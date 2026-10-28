@@ -1,5 +1,6 @@
 import csv
 import hashlib
+import hmac
 import io
 import json
 import logging
@@ -12,7 +13,8 @@ from functools import wraps
 from datetime import datetime
 from flask import Blueprint, jsonify, request, send_from_directory, current_app, url_for, render_template, Response, flash, redirect, session
 from flask_login import login_required, current_user
-from app import db
+from app import db, csrf
+from app.security import sanitize_html
 from app.models import (
     User, Vehicle, VehicleSpec, FuelLog, Expense, EXPENSE_CATEGORIES,
     Reminder, MaintenanceSchedule, RecurringExpense, FuelStation,
@@ -26,6 +28,19 @@ from config import APP_VERSION
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('api', __name__, url_prefix='/api')
+
+
+@bp.before_request
+def csrf_protect_session_requests():
+    """The blueprint is CSRF-exempt for API-key clients; browser-session requests still need the token.
+
+    A cross-site page can't attach these headers without a CORS preflight, so their presence
+    means the request isn't a forged form post.
+    """
+    if not current_app.config.get('WTF_CSRF_ENABLED', True):
+        return
+    if not any(request.headers.get(h) for h in ('Authorization', 'X-API-Key', 'X-Internal-Token')):
+        csrf.protect()
 
 
 # =============================================================================
@@ -159,7 +174,7 @@ def test_notification():
         topic = request.form.get('ntfy_topic')
         if not topic:
             return jsonify({'success': False, 'error': 'Please enter an ntfy topic'})
-        success, error = NotificationService.send_ntfy(topic, title, message)
+        success, error = NotificationService.send_ntfy(topic, title, message, allow_private=current_user.is_admin)
     elif method == 'pushover':
         user_key = request.form.get('pushover_user_key')
         if not user_key:
@@ -175,7 +190,7 @@ def test_notification():
             'user_email': current_user.email,
             'test': True,
         }
-        success, error = NotificationService.send_webhook(webhook_url, payload)
+        success, error = NotificationService.send_webhook(webhook_url, payload, allow_private=current_user.is_admin)
     else:
         return jsonify({'success': False, 'error': f'Unknown method: {method}'})
 
@@ -251,15 +266,15 @@ def process_reminders():
 
     Can also be triggered manually by an admin from the UI.
     """
-    # Check for API key or admin session
+    # Check for an admin's API key or admin session
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
     api_user = User.get_by_api_key(token) if token else None
 
-    if not (api_user or (current_user and current_user.is_authenticated and current_user.is_admin)):
+    if not ((api_user and api_user.is_admin) or (current_user and current_user.is_authenticated and current_user.is_admin)):
         # Also allow internal calls with the app secret
-        internal_token = request.headers.get('X-Internal-Token')
-        expected_token = current_app.config.get('INTERNAL_API_KEY')
-        if not internal_token or not expected_token or internal_token != expected_token:
+        internal_token = request.headers.get('X-Internal-Token', '')
+        expected_token = current_app.config.get('INTERNAL_API_KEY') or ''
+        if not internal_token or not expected_token or not hmac.compare_digest(internal_token, expected_token):
             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     from app.services.reminder_processor import process_due_reminders
@@ -275,14 +290,26 @@ def process_reminders():
 # File Serving
 # =============================================================================
 
+def _upload_vehicle_ids(filename):
+    """IDs of the vehicles an uploaded file belongs to (photo, document, or attachment)."""
+    ids = {v.id for v in Vehicle.query.filter_by(image_filename=filename)}
+    ids |= {d.vehicle_id for d in Document.query.filter_by(filename=filename)}
+    for att in Attachment.query.filter_by(filename=filename):
+        owner = att.fuel_log or att.expense or (att.shopping_item and att.shopping_item.project)
+        ids.add(att.vehicle_id or (owner and owner.vehicle_id))
+    return ids
+
+
 @bp.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Serve uploaded files. Logo is public (shown on login page); all other uploads require auth."""
+    """Serve uploaded files. Logo is public (shown on login page); other files only to users with access to their vehicle."""
     from app.models import AppSettings
-    logo_filename = AppSettings.get('logo_filename')
-    if filename != logo_filename:
+    if filename != AppSettings.get('logo_filename'):
         if not current_user.is_authenticated:
             return current_app.login_manager.unauthorized()
+        accessible = {v.id for v in current_user.get_all_vehicles()}
+        if not _upload_vehicle_ids(filename) & accessible:
+            return jsonify({'error': 'Not found'}), 404
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
 
 
@@ -2601,7 +2628,7 @@ def _restore_backup_data(data, user, upload_folder):
                 vehicle_id=vehicle.id,
                 user_id=user.id,
                 title=nd.get('title', ''),
-                content=nd.get('content'),
+                content=sanitize_html(nd.get('content')),
                 is_pinned=nd.get('is_pinned', False),
             ))
             stats['notes'] += 1

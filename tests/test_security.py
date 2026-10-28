@@ -285,3 +285,86 @@ class TestAdminRequired:
         assert response.status_code == 302
         location = response.headers.get('Location', '')
         assert 'login' in location.lower()
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for the 2026-10 security review
+# ---------------------------------------------------------------------------
+
+def test_backup_restore_sanitizes_note_html(app, test_user):
+    from app.models import VehicleNote
+    from app.routes.api import _restore_backup_data
+    _restore_backup_data({'vehicles': [{'name': 'Car', 'vehicle_type': 'car', 'vehicle_notes': [
+        {'title': 'n', 'content': '<p>ok</p><script>alert(1)</script><img src="x" onerror="alert(1)">'},
+    ]}]}, test_user, app.config['UPLOAD_FOLDER'])
+
+    content = VehicleNote.query.one().content
+    assert '<p>ok</p>' in content
+    assert '<script' not in content and 'onerror' not in content
+
+
+def test_uploads_only_served_to_users_with_vehicle_access(app, auth_client, sample_vehicle, admin_user):
+    import os
+    from datetime import date
+    from app import db
+    from app.models import Vehicle, Expense, Attachment
+    other = Vehicle(owner_id=admin_user.id, name='Other', vehicle_type='car')
+    db.session.add(other)
+    db.session.commit()
+    for vehicle, name in [(sample_vehicle, 'mine.pdf'), (other, 'theirs.pdf')]:
+        expense = Expense(vehicle_id=vehicle.id, user_id=vehicle.owner_id, date=date(2026, 1, 1),
+                          category='other', description='x', cost=1)
+        db.session.add(expense)
+        db.session.flush()
+        db.session.add(Attachment(filename=name, original_filename=name, expense_id=expense.id))
+        with open(os.path.join(app.config['UPLOAD_FOLDER'], name), 'wb') as f:
+            f.write(b'%PDF-1.4')
+    db.session.commit()
+
+    assert auth_client.get('/api/uploads/mine.pdf').status_code == 200
+    assert auth_client.get('/api/uploads/theirs.pdf').status_code == 404
+    assert auth_client.get('/api/uploads/orphan.pdf').status_code == 404
+
+
+def test_api_session_writes_need_csrf_token(app, auth_client, api_headers):
+    import re
+    app.config['WTF_CSRF_ENABLED'] = True
+
+    resp = auth_client.post('/api/toggle-dark-mode', json={'mode': 'dark'})
+    assert resp.status_code == 400 and b'CSRF' in resp.data
+    token = re.search(r'name="csrf-token" content="([^"]+)"', auth_client.get('/dashboard').get_data(as_text=True))
+    assert auth_client.post('/api/toggle-dark-mode', json={'mode': 'dark'},
+                            headers={'X-CSRFToken': token.group(1)}).status_code == 200
+    # API-key clients don't need a token
+    resp = auth_client.post('/api/v1/vehicles', json={'name': 'Key Car', 'vehicle_type': 'car'}, headers=api_headers)
+    assert resp.status_code == 201
+
+
+def test_home_assistant_fuel_add_works_with_csrf_enabled(app, client, sample_vehicle, api_headers):
+    app.config['WTF_CSRF_ENABLED'] = True
+    resp = client.post('/api/ha/fuel/add', json={
+        'vehicle_id': sample_vehicle.id, 'date': '2026-03-01', 'odometer': 6000.0,
+        'volume': 42.0, 'price_per_unit': 1.65, 'total_cost': 69.30,
+    }, headers={'Authorization': 'Bearer ' + api_headers['X-API-Key']})
+    assert resp.status_code == 201, resp.get_data(as_text=True)
+
+
+def test_reminder_processing_rejects_non_admin_api_key(client, api_headers):
+    resp = client.post('/api/reminders/process', headers={'Authorization': 'Bearer ' + api_headers['X-API-Key']})
+    assert resp.status_code == 401
+
+
+def test_notification_urls_to_private_network_blocked_for_non_admins():
+    from app.services.notifications import NotificationService
+    ok, error = NotificationService.send_webhook('http://127.0.0.1:9/hook', {})
+    assert not ok and 'private' in error
+    ok, error = NotificationService.send_ntfy('http://10.0.0.5/alerts', 'title', 'message')
+    assert not ok and 'private' in error
+    ok, error = NotificationService.send_webhook('file:///etc/passwd', {}, allow_private=True)
+    assert not ok and 'http' in error
+
+
+def test_content_security_policy_header(client):
+    csp = client.get('/auth/login').headers['Content-Security-Policy']
+    assert "object-src 'none'" in csp
+    assert 'https://cdn.jsdelivr.net' in csp
