@@ -564,7 +564,7 @@ def api_create_fuel_log(vehicle_id):
     """
     Create a fuel log
 
-    Required fields: date, odometer
+    Required fields: date, and odometer or trip_reading (trip meter value, wraps at 1000)
     Optional fields: volume, price_per_unit, total_cost, fuel_grade, is_full_tank, is_missed, station, notes
     """
     user = get_api_user()
@@ -580,8 +580,14 @@ def api_create_fuel_log(vehicle_id):
     if not data.get('date'):
         return jsonify({'error': 'date is required (YYYY-MM-DD)', 'code': 'validation_error'}), 400
 
-    if not data.get('odometer'):
-        return jsonify({'error': 'odometer is required', 'code': 'validation_error'}), 400
+    trip_reading = None
+    if data.get('trip_reading') is not None:
+        from app.routes.fuel import parse_trip_reading
+        trip_reading, err = parse_trip_reading(data['trip_reading'])
+        if err:
+            return jsonify({'error': err, 'code': 'validation_error'}), 400
+    elif not data.get('odometer'):
+        return jsonify({'error': 'odometer or trip_reading is required', 'code': 'validation_error'}), 400
 
     try:
         date = datetime.strptime(data['date'], '%Y-%m-%d').date()
@@ -596,7 +602,8 @@ def api_create_fuel_log(vehicle_id):
         vehicle_id=vehicle_id,
         user_id=user.id,
         date=date,
-        odometer=float(data['odometer']),
+        odometer=0 if trip_reading is not None else float(data['odometer']),
+        trip_reading=trip_reading,
         volume=float(data['volume']) if data.get('volume') else None,
         price_per_unit=float(data['price_per_unit']) if data.get('price_per_unit') else None,
         total_cost=float(data['total_cost']) if data.get('total_cost') else None,
@@ -612,6 +619,7 @@ def api_create_fuel_log(vehicle_id):
         log.total_cost = round(log.volume * log.price_per_unit, 2)
 
     db.session.add(log)
+    vehicle.rebuild_trip_odometers()
     db.session.commit()
 
     return jsonify(log.to_dict()), 201
@@ -650,7 +658,15 @@ def api_update_fuel_log(log_id):
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD', 'code': 'validation_error'}), 400
 
-    if 'odometer' in data:
+    if log.trip_reading is not None:
+        # Trip meter entry: odometer is derived, only the trip reading can change
+        if 'trip_reading' in data:
+            from app.routes.fuel import parse_trip_reading
+            trip_reading, err = parse_trip_reading(data['trip_reading'])
+            if err:
+                return jsonify({'error': err, 'code': 'validation_error'}), 400
+            log.trip_reading = trip_reading
+    elif 'odometer' in data:
         log.odometer = float(data['odometer'])
     if 'volume' in data:
         log.volume = float(data['volume']) if data['volume'] else None
@@ -671,6 +687,7 @@ def api_update_fuel_log(log_id):
     if 'notes' in data:
         log.notes = data['notes']
 
+    log.vehicle.rebuild_trip_odometers()
     db.session.commit()
     return jsonify(log.to_dict())
 
@@ -685,7 +702,10 @@ def api_delete_fuel_log(log_id):
     if log.vehicle not in user.get_all_vehicles():
         return jsonify({'error': 'Fuel log not found or access denied', 'code': 'not_found'}), 404
 
+    vehicle = log.vehicle
     db.session.delete(log)
+    db.session.flush()
+    vehicle.rebuild_trip_odometers()
     db.session.commit()
 
     return jsonify({'success': True, 'message': 'Fuel log deleted'})
@@ -2392,6 +2412,7 @@ def _restore_backup_data(data, user, upload_folder):
             registration=vd.get('registration'),
             vin=vd.get('vin'),
             fuel_type=vd.get('fuel_type', 'petrol'),
+            mileage_mode=vd.get('mileage_mode') or 'odometer',
             tank_capacity=vd.get('tank_capacity'),
             battery_capacity=vd.get('battery_capacity'),
             is_active=vd.get('is_active', True),
@@ -2434,6 +2455,7 @@ def _restore_backup_data(data, user, upload_folder):
                 user_id=user.id,
                 date=_parse_date(ld.get('date')),
                 odometer=ld.get('odometer'),
+                trip_reading=ld.get('trip_reading'),
                 volume=ld.get('volume'),
                 price_per_unit=ld.get('price_per_unit'),
                 total_cost=ld.get('total_cost'),
@@ -2455,6 +2477,8 @@ def _restore_backup_data(data, user, upload_folder):
                     file_size=ad.get('file_size', 0),
                     description=ad.get('description'),
                 ))
+
+        vehicle.rebuild_trip_odometers()
 
         # expenses (ids/receipts remembered so shopping projects can relink below)
         expense_id_map = {}
@@ -3739,6 +3763,8 @@ def csv_import_execute():
                 if len(errors) < max_errors:
                     errors.append(f'Row {row_num}: {str(e)}')
 
+        if data_type == 'fuel_logs':
+            vehicle.rebuild_trip_odometers()
         db.session.commit()
 
         label = DATA_TYPE_LABELS.get(data_type, data_type)

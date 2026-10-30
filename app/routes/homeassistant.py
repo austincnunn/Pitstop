@@ -393,6 +393,7 @@ def add_fuel(user):
         )
 
         db.session.add(fuel_log)
+        vehicle.rebuild_trip_odometers()
         db.session.commit()
 
         return jsonify({

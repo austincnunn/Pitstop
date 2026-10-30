@@ -252,6 +252,10 @@ class Vehicle(db.Model):
     # Per-vehicle odometer unit override (if None, falls back to user's distance_unit)
     odometer_unit = db.Column(db.String(10), default=None)  # km, mi, or None (use user preference)
 
+    # How fill-up distance is entered: 'odometer' (total reading) or 'trip' (rolling trip meter).
+    # Only affects NEW fill-ups; each FuelLog remembers which kind it was entered as.
+    mileage_mode = db.Column(db.String(10), nullable=False, default='odometer', server_default='odometer')
+
     # Fuel info
     fuel_type = db.Column(db.String(20), default='petrol')  # petrol, diesel, electric, hybrid, lpg
     default_fuel_grade = db.Column(db.String(20))  # regular, plus, premium, e85, e15, diesel -- optional, auto-selects on fuel entry
@@ -310,6 +314,56 @@ class Vehicle(db.Model):
             return self.owner.distance_unit
         return 'km'
 
+    def uses_trip_meter(self):
+        return self.mileage_mode == 'trip'
+
+    def get_last_trip_reading(self):
+        """Trip meter reading of the latest fill-up, or None if that fill-up wasn't a trip entry."""
+        last = self.fuel_logs.order_by(FuelLog.date.desc(), FuelLog.id.desc()).first()
+        return last.trip_reading if last else None
+
+    def rebuild_trip_odometers(self):
+        """Recompute derived fields after any fuel log change. Caller commits.
+
+        Trip-meter fill-ups get a running odometer (sum of trip deltas) so every
+        odometer-based calculation keeps working. Odometer-entered fill-ups are
+        never modified. Where the entry kind changes (vehicle switched modes), the
+        distance across the switch is unknown, so the next full tank is flagged
+        distance_unknown and starts a fresh consumption segment.
+        """
+        logs = self.fuel_logs.order_by(FuelLog.date, FuelLog.id).all()
+
+        runs = []  # consecutive logs of the same kind: [(is_trip, [logs])]
+        for log in logs:
+            is_trip = log.trip_reading is not None
+            if runs and runs[-1][0] == is_trip:
+                runs[-1][1].append(log)
+            else:
+                runs.append((is_trip, [log]))
+
+        for i, (is_trip, run) in enumerate(runs):
+            if not is_trip:
+                continue
+            offsets = [0.0]
+            for prev, cur in zip(run, run[1:]):
+                offsets.append(offsets[-1] + trip_meter_delta(prev.trip_reading, cur.trip_reading))
+            if i > 0:  # continue on from the last real odometer reading
+                base = runs[i - 1][1][-1].odometer
+            elif i + 1 < len(runs):  # trip logs came first: end where the real odometer starts
+                base = runs[i + 1][1][0].odometer - offsets[-1]
+            else:
+                base = 0.0
+            for log, offset in zip(run, offsets):
+                log.odometer = round(base + offset, 1)
+
+        pending_break = False
+        for prev, log in zip([None] + logs, logs):
+            if prev is not None and (prev.trip_reading is None) != (log.trip_reading is None):
+                pending_break = True
+            log.distance_unknown = pending_break and bool(log.is_full_tank) and not log.exclude_from_consumption
+            if log.distance_unknown:
+                pending_break = False
+
     def get_total_fuel_cost(self):
         return sum(log.total_cost for log in self.fuel_logs.all() if log.total_cost)
 
@@ -351,12 +405,20 @@ class Vehicle(db.Model):
         Args:
             consumption_unit: 'L/100km', 'mpg', or 'mpg_us'. If None, returns L/100km.
         """
-        logs = self.fuel_logs.filter_by(is_full_tank=True, exclude_from_consumption=False).order_by(FuelLog.odometer).all()
-        if len(logs) < 2:
-            return None
+        logs = self.fuel_logs.filter_by(is_full_tank=True, exclude_from_consumption=False).order_by(
+            FuelLog.odometer, FuelLog.date, FuelLog.id).all()
 
-        total_fuel = sum(log.volume for log in logs[1:] if log.volume)
-        total_distance = logs[-1].odometer - logs[0].odometer
+        # Split at mileage-mode switches; the distance across a switch is unknown
+        total_fuel = total_distance = 0
+        segment = []
+        for log in logs + [None]:
+            if log is None or log.distance_unknown:
+                if len(segment) >= 2:
+                    total_distance += segment[-1].odometer - segment[0].odometer
+                    total_fuel += sum(l.volume for l in segment[1:] if l.volume)
+                segment = []
+            if log is not None:
+                segment.append(log)
 
         if total_distance > 0 and total_fuel > 0:
             if consumption_unit in ('mpg', 'mpg_us'):
@@ -433,6 +495,7 @@ class Vehicle(db.Model):
             'registration': self.registration,
             'vin': self.vin,
             'fuel_type': self.fuel_type,
+            'mileage_mode': self.mileage_mode,
             'tank_capacity': self.tank_capacity,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -454,7 +517,9 @@ class FuelLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
-    odometer = db.Column(db.Float, nullable=False)  # stored in km
+    odometer = db.Column(db.Float, nullable=False)  # stored in km; derived for trip-meter entries
+    trip_reading = db.Column(db.Float)  # raw trip meter value as entered; None = odometer entry
+    distance_unknown = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())  # set by Vehicle.rebuild_trip_odometers
     volume = db.Column(db.Float)  # stored in liters
     price_per_unit = db.Column(db.Float)  # price per liter
     total_cost = db.Column(db.Float)
@@ -479,7 +544,7 @@ class FuelLog(db.Model):
         Args:
             consumption_unit: 'L/100km', 'mpg', or 'mpg_us'. If None, returns L/100km.
         """
-        if not self.is_full_tank or not self.volume or self.exclude_from_consumption:
+        if not self.is_full_tank or not self.volume or self.exclude_from_consumption or self.distance_unknown:
             return None
 
         prev_log = FuelLog.query.filter(
@@ -504,6 +569,7 @@ class FuelLog(db.Model):
             'vehicle_id': self.vehicle_id,
             'date': self.date.isoformat() if self.date else None,
             'odometer': self.odometer,
+            'trip_reading': self.trip_reading,
             'volume': self.volume,
             'price_per_unit': self.price_per_unit,
             'total_cost': self.total_cost,
@@ -757,6 +823,20 @@ TRACKING_UNITS = [
     ('mileage', _l('Mileage (km/mi)')),
     ('hours', _l('Hours')),
 ]
+
+# How fill-up distance is entered per vehicle
+MILEAGE_MODES = [
+    ('odometer', _l('Odometer (total distance)')),
+    ('trip', _l('Trip meter (rolls over)')),
+]
+
+TRIP_METER_ROLLOVER = 1000  # ponytail: same wrap point for every vehicle; make it per-vehicle if one wraps elsewhere (e.g. 9999.9)
+
+
+def trip_meter_delta(prev_reading, reading):
+    """Distance between two trip meter readings, allowing for one rollover."""
+    return (reading - prev_reading) % TRIP_METER_ROLLOVER
+
 
 # Odometer unit options (for per-vehicle override)
 ODOMETER_UNITS = [

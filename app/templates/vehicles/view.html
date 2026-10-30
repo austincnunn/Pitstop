@@ -60,7 +60,7 @@
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ vehicle.registration or _('Not set') }}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Last Odometer') }}</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ _('Distance Tracked') if vehicle.uses_trip_meter() else _('Last Odometer') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ vehicle.get_last_odometer(vehicle.get_effective_odometer_unit())|format_distance(current_user, vehicle.get_effective_odometer_unit()) }}</dd>
                 </div>
             </div>
@@ -653,7 +653,7 @@
                     <div>
                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ log.date|format_date }}</p>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                            {{ log.odometer|format_distance(current_user, vehicle.get_effective_odometer_unit()) }} &middot;
+                            {% if log.trip_reading is not none %}{{ log.trip_reading|format_distance(current_user, vehicle.get_effective_odometer_unit()) }} {{ _('trip') }}{% else %}{{ log.odometer|format_distance(current_user, vehicle.get_effective_odometer_unit()) }}{% endif %} &middot;
                             {{ (log.volume or 0)|format_volume(current_user) }}
                             {% if log.is_full_tank %}<span class="text-green-600">{{ _('(Full)') }}</span>{% endif %}
                         </p>

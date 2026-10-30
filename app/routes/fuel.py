@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
-from app.models import Vehicle, FuelLog, Attachment, FuelStation, FuelPriceHistory, FUEL_GRADES
+from app.models import Vehicle, FuelLog, Attachment, FuelStation, FuelPriceHistory, FUEL_GRADES, TRIP_METER_ROLLOVER
 from app.security import validate_file_upload, secure_filename_with_uuid, validate_positive_number, safe_int, safe_float
 from flask_babel import gettext as _
 from app.services.tessie import TessieService
@@ -13,6 +13,16 @@ from app.services.tessie import TessieService
 bp = Blueprint('fuel', __name__, url_prefix='/fuel')
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf'}
+
+
+def parse_trip_reading(value):
+    """Validate a trip meter reading. Returns (reading, error)."""
+    reading, err = validate_positive_number(value, 'Trip meter', max_value=TRIP_METER_ROLLOVER)
+    if err:
+        return None, err
+    if reading is None or reading >= TRIP_METER_ROLLOVER:
+        return None, _('Trip meter reading must be from 0 to under %(max)s', max=TRIP_METER_ROLLOVER)
+    return reading, None
 
 
 def allowed_file(filename):
@@ -73,7 +83,12 @@ def new():
         date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.now().date()
 
         # Validate numeric inputs
-        odometer, err = validate_positive_number(request.form.get('odometer'), 'Odometer', max_value=9999999)
+        trip_reading = None
+        if vehicle.uses_trip_meter():
+            trip_reading, err = parse_trip_reading(request.form.get('trip_reading'))
+            odometer = 0  # derived by rebuild_trip_odometers below
+        else:
+            odometer, err = validate_positive_number(request.form.get('odometer'), 'Odometer', max_value=9999999)
         if err:
             flash(err, 'error')
             return rerender()
@@ -103,6 +118,7 @@ def new():
             user_id=current_user.id,
             date=date,
             odometer=odometer,
+            trip_reading=trip_reading,
             volume=volume,
             price_per_unit=price_per_unit,
             total_cost=total_cost,
@@ -119,6 +135,7 @@ def new():
             log.total_cost = round(log.volume * log.price_per_unit, 2)
 
         db.session.add(log)
+        vehicle.rebuild_trip_odometers()
         db.session.commit()
 
         # Auto-save fuel price to history if station is selected
@@ -195,7 +212,17 @@ def edit(log_id):
 
         date_str = request.form.get('date')
         log.date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else log.date
-        log.odometer = float(request.form.get('odometer'))
+        # Keep the log's own entry kind, whatever the vehicle's current mileage mode
+        if log.trip_reading is not None:
+            trip_reading, err = parse_trip_reading(request.form.get('trip_reading'))
+            if err:
+                flash(err, 'error')
+                return render_template('fuel/form.html', log=log, vehicles=vehicles,
+                                        stations=stations, fuel_grades=FUEL_GRADES,
+                                        selected_vehicle_id=log.vehicle_id)
+            log.trip_reading = trip_reading
+        else:
+            log.odometer = float(request.form.get('odometer'))
         log.volume = float(request.form.get('volume')) if request.form.get('volume') else None
         log.price_per_unit = float(request.form.get('price_per_unit')) if request.form.get('price_per_unit') else None
         log.total_cost = float(request.form.get('total_cost')) if request.form.get('total_cost') else None
@@ -225,6 +252,7 @@ def edit(log_id):
                 )
                 db.session.add(attachment)
 
+        log.vehicle.rebuild_trip_odometers()
         db.session.commit()
         flash(_('Fuel log updated successfully'), 'success')
         return redirect(url_for('vehicles.view', vehicle_id=log.vehicle_id))
@@ -264,7 +292,10 @@ def delete(log_id):
             FuelPriceHistory.price_per_unit == log.price_per_unit
         ).delete()
 
+    vehicle = log.vehicle
     db.session.delete(log)
+    db.session.flush()
+    vehicle.rebuild_trip_odometers()
     db.session.commit()
     flash(_('Fuel log deleted successfully'), 'success')
     return redirect(url_for('vehicles.view', vehicle_id=vehicle_id))
@@ -303,11 +334,19 @@ def quick():
                                     fuel_grades=FUEL_GRADES, selected_vehicle_id=vehicle_id,
                                     last_odometer=vehicle.get_last_odometer())
 
+        trip_reading = None
+        if vehicle.uses_trip_meter():
+            trip_reading, err = parse_trip_reading(request.form.get('trip_reading'))
+            if err:
+                flash(err, 'error')
+                return redirect(url_for('fuel.quick', vehicle_id=vehicle_id))
+
         log = FuelLog(
             vehicle_id=vehicle_id,
             user_id=current_user.id,
             date=datetime.now().date(),
-            odometer=safe_float(request.form.get('odometer')),
+            odometer=0 if trip_reading is not None else safe_float(request.form.get('odometer')),
+            trip_reading=trip_reading,
             volume=float(request.form.get('volume')) if request.form.get('volume') else None,
             total_cost=float(request.form.get('total_cost')) if request.form.get('total_cost') else None,
             fuel_grade=fuel_grade,
@@ -330,6 +369,7 @@ def quick():
                 station.increment_usage()
 
         db.session.add(log)
+        vehicle.rebuild_trip_odometers()
         db.session.commit()
 
         flash(_('Fuel log added!'), 'success')

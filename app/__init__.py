@@ -87,9 +87,12 @@ def _run_schema_migrations(app):
             ('tessie_last_updated', 'TIMESTAMP'),
             ('tracking_unit', "VARCHAR(20) DEFAULT 'mileage'"),
             ('default_fuel_grade', 'VARCHAR(20)'),
+            ('mileage_mode', "VARCHAR(10) DEFAULT 'odometer'"),
         ],
         'fuel_logs': [
             ('fuel_grade', "VARCHAR(20) DEFAULT 'regular'"),
+            ('trip_reading', 'FLOAT'),
+            ('distance_unknown', 'BOOLEAN DEFAULT FALSE'),
         ],
         'users': [
             ('date_format', "VARCHAR(20) DEFAULT 'DD/MM/YYYY'"),

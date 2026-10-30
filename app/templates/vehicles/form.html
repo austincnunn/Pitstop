@@ -56,6 +56,17 @@
                 </div>
 
                 <div>
+                    <label for="mileage_mode" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Fill-up Mileage Entry') }}</label>
+                    <select name="mileage_mode" id="mileage_mode"
+                            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        {% for value, label in mileage_modes %}
+                        <option value="{{ value }}" {% if (vehicle and vehicle.mileage_mode == value) or (not vehicle and value == 'odometer') %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Use "Trip meter" for vehicles without a working odometer. Enter the trip meter reading at each fill-up; it may roll over every 1000. Switching only affects new fill-ups, existing ones are kept as entered.') }}</p>
+                </div>
+
+                <div>
                     <label for="fuel_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Powertrain') }}</label>
                     <select name="fuel_type" id="fuel_type"
                             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">

@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
 from app import db
-from app.models import Vehicle, VehicleSpec, VehiclePart, FuelLog, Expense, User, Reminder, VehicleNote, ShoppingProject, VEHICLE_TYPES, FUEL_TYPES, FUEL_GRADES, VEHICLE_SPEC_TYPES, REMINDER_TYPES, PART_TYPES, TRACKING_UNITS, ODOMETER_UNITS, AppSettings
+from app.models import Vehicle, VehicleSpec, VehiclePart, FuelLog, Expense, User, Reminder, VehicleNote, ShoppingProject, VEHICLE_TYPES, FUEL_TYPES, FUEL_GRADES, VEHICLE_SPEC_TYPES, REMINDER_TYPES, PART_TYPES, TRACKING_UNITS, ODOMETER_UNITS, MILEAGE_MODES, AppSettings
 from app.services.tessie import TessieService
 
 bp = Blueprint('vehicles', __name__, url_prefix='/vehicles')
@@ -57,6 +57,7 @@ def new():
             vehicle_type=request.form.get('vehicle_type'),
             tracking_unit=request.form.get('tracking_unit', 'mileage'),
             odometer_unit=request.form.get('odometer_unit') or None,
+            mileage_mode='trip' if request.form.get('mileage_mode') == 'trip' else 'odometer',
             make=request.form.get('make'),
             model=request.form.get('model'),
             year=int(request.form.get('year')) if request.form.get('year') else None,
@@ -108,6 +109,7 @@ def new():
                            fuel_grades=FUEL_GRADES,
                            tracking_units=TRACKING_UNITS,
                            odometer_units=ODOMETER_UNITS,
+                           mileage_modes=MILEAGE_MODES,
                            spec_types=VEHICLE_SPEC_TYPES,
                            tessie_configured=tessie_configured)
 
@@ -191,6 +193,8 @@ def edit(vehicle_id):
         vehicle.vehicle_type = request.form.get('vehicle_type')
         vehicle.tracking_unit = request.form.get('tracking_unit', 'mileage')
         vehicle.odometer_unit = request.form.get('odometer_unit') or None
+        # Only changes how NEW fill-ups are entered; existing logs keep their own kind
+        vehicle.mileage_mode = 'trip' if request.form.get('mileage_mode', vehicle.mileage_mode) == 'trip' else 'odometer'
         vehicle.make = request.form.get('make')
         vehicle.model = request.form.get('model')
         vehicle.year = int(request.form.get('year')) if request.form.get('year') else None
@@ -255,6 +259,7 @@ def edit(vehicle_id):
                            fuel_grades=FUEL_GRADES,
                            tracking_units=TRACKING_UNITS,
                            odometer_units=ODOMETER_UNITS,
+                           mileage_modes=MILEAGE_MODES,
                            spec_types=VEHICLE_SPEC_TYPES,
                            specs=specs,
                            tessie_configured=tessie_configured)

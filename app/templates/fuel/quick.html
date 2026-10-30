@@ -22,6 +22,8 @@
                         data-uses-tessie="{{ 'true' if vehicle.uses_tessie_odometer() else 'false' }}"
                         data-tessie-odometer="{% if vehicle.tessie_last_odometer %}{% if vehicle.get_effective_odometer_unit() == 'mi' %}{{ (vehicle.tessie_last_odometer * 0.621371)|round|int }}{% else %}{{ vehicle.tessie_last_odometer|round|int }}{% endif %}{% endif %}"
                         data-default-fuel-grade="{{ vehicle.default_fuel_grade or '' }}"
+                        data-mileage-mode="{{ vehicle.mileage_mode }}"
+                        data-last-trip="{{ vehicle.get_last_trip_reading() if vehicle.get_last_trip_reading() is not none else '' }}"
                         {% if selected_vehicle_id and selected_vehicle_id|int == vehicle.id %}selected{% endif %}>
                     {{ vehicle.name }}
                 </option>
@@ -30,7 +32,7 @@
         </div>
 
         <!-- Odometer -->
-        <div>
+        <div id="odometer-group">
             <label for="odometer" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {{ _('Odometer') }} *
                 <span id="tessie-badge" class="hidden ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -49,6 +51,14 @@
             <p id="last-odometer-hint" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {% if last_odometer %}{{ _('Last') }}: {{ "{:,.0f}".format(last_odometer) }} {{ current_user.distance_unit }}{% endif %}
             </p>
+        </div>
+
+        <!-- Trip meter (vehicles set to trip meter mode) -->
+        <div id="trip-group" class="hidden">
+            <label for="trip_reading" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ _('Trip Meter') }} *</label>
+            <input type="number" name="trip_reading" id="trip_reading" step="0.1" min="0" max="999.9" disabled
+                   class="mt-1 block w-full rounded-lg text-lg py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+            <p id="last-trip-hint" class="mt-1 text-xs text-gray-500 dark:text-gray-400"></p>
         </div>
 
         <!-- Volume and Cost in a row -->
@@ -145,6 +155,20 @@ function updateVehicleOdometer() {
 
     // Update odometer unit display
     if (unitBadge) unitBadge.textContent = odometerUnit;
+
+    // Trip meter vehicles enter the trip reading instead of the odometer
+    const useTrip = option.dataset.mileageMode === 'trip';
+    const tripInput = document.getElementById('trip_reading');
+    document.getElementById('odometer-group').classList.toggle('hidden', useTrip);
+    document.getElementById('trip-group').classList.toggle('hidden', !useTrip);
+    input.disabled = useTrip;
+    input.required = !useTrip;
+    tripInput.disabled = !useTrip;
+    tripInput.required = useTrip;
+    const lastTrip = option.dataset.lastTrip;
+    document.getElementById('last-trip-hint').textContent = lastTrip
+        ? {{ _('Last')|tojson }} + ': ' + lastTrip
+        : {{ _('First trip meter fill-up starts a new baseline; MPG begins at the next one.')|tojson }};
 
     // Auto-select the vehicle's default fuel type, but never clobber an
     // already-chosen value
