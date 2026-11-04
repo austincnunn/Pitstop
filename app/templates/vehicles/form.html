@@ -63,7 +63,7 @@
                         <option value="{{ value }}" {% if (vehicle and vehicle.mileage_mode == value) or (not vehicle and value == 'odometer') %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Use "Trip meter" for vehicles without a working odometer. Enter the trip meter reading at each fill-up; it may roll over every 1000. Switching only affects new fill-ups, existing ones are kept as entered.') }}</p>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ _('Use "Trip meter" for vehicles without a working odometer. At each fill-up, enter the trip meter reading (distance since the last fill-up), then reset it; Pitstop adds these up into a running total. Switching only affects new fill-ups, existing ones are kept as entered.') }}</p>
                 </div>
 
                 <div>

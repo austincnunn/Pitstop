@@ -317,48 +317,23 @@ class Vehicle(db.Model):
     def uses_trip_meter(self):
         return self.mileage_mode == 'trip'
 
-    def get_last_trip_reading(self):
-        """Trip meter reading of the latest fill-up, or None if that fill-up wasn't a trip entry."""
-        last = self.fuel_logs.order_by(FuelLog.date.desc(), FuelLog.id.desc()).first()
-        return last.trip_reading if last else None
-
     def rebuild_trip_odometers(self):
         """Recompute derived fields after any fuel log change. Caller commits.
 
-        Trip-meter fill-ups get a running odometer (sum of trip deltas) so every
-        odometer-based calculation keeps working. Odometer-entered fill-ups are
-        never modified. Where the entry kind changes (vehicle switched modes), the
+        A trip-meter fill-up's reading is the distance since the previous fill-up
+        (the trip meter is reset at each fill-up), so its odometer is the previous
+        fill-up's odometer plus that distance. This keeps every odometer-based
+        calculation working. Odometer-entered fill-ups are never modified. When an
+        odometer reading follows trip-meter fill-ups (vehicle switched back), the
         distance across the switch is unknown, so the next full tank is flagged
         distance_unknown and starts a fresh consumption segment.
         """
         logs = self.fuel_logs.order_by(FuelLog.date, FuelLog.id).all()
-
-        runs = []  # consecutive logs of the same kind: [(is_trip, [logs])]
-        for log in logs:
-            is_trip = log.trip_reading is not None
-            if runs and runs[-1][0] == is_trip:
-                runs[-1][1].append(log)
-            else:
-                runs.append((is_trip, [log]))
-
-        for i, (is_trip, run) in enumerate(runs):
-            if not is_trip:
-                continue
-            offsets = [0.0]
-            for prev, cur in zip(run, run[1:]):
-                offsets.append(offsets[-1] + trip_meter_delta(prev.trip_reading, cur.trip_reading))
-            if i > 0:  # continue on from the last real odometer reading
-                base = runs[i - 1][1][-1].odometer
-            elif i + 1 < len(runs):  # trip logs came first: end where the real odometer starts
-                base = runs[i + 1][1][0].odometer - offsets[-1]
-            else:
-                base = 0.0
-            for log, offset in zip(run, offsets):
-                log.odometer = round(base + offset, 1)
-
         pending_break = False
         for prev, log in zip([None] + logs, logs):
-            if prev is not None and (prev.trip_reading is None) != (log.trip_reading is None):
+            if log.trip_reading is not None:
+                log.odometer = round((prev.odometer if prev else 0) + log.trip_reading, 1)
+            elif prev is not None and prev.trip_reading is not None:
                 pending_break = True
             log.distance_unknown = pending_break and bool(log.is_full_tank) and not log.exclude_from_consumption
             if log.distance_unknown:
@@ -518,7 +493,7 @@ class FuelLog(db.Model):
 
     date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
     odometer = db.Column(db.Float, nullable=False)  # stored in km; derived for trip-meter entries
-    trip_reading = db.Column(db.Float)  # raw trip meter value as entered; None = odometer entry
+    trip_reading = db.Column(db.Float)  # distance since previous fill-up, as entered; None = odometer entry
     distance_unknown = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())  # set by Vehicle.rebuild_trip_odometers
     volume = db.Column(db.Float)  # stored in liters
     price_per_unit = db.Column(db.Float)  # price per liter
@@ -827,15 +802,10 @@ TRACKING_UNITS = [
 # How fill-up distance is entered per vehicle
 MILEAGE_MODES = [
     ('odometer', _l('Odometer (total distance)')),
-    ('trip', _l('Trip meter (rolls over)')),
+    ('trip', _l('Trip meter (reset each fill-up)')),
 ]
 
-TRIP_METER_ROLLOVER = 1000  # ponytail: same wrap point for every vehicle; make it per-vehicle if one wraps elsewhere (e.g. 9999.9)
-
-
-def trip_meter_delta(prev_reading, reading):
-    """Distance between two trip meter readings, allowing for one rollover."""
-    return (reading - prev_reading) % TRIP_METER_ROLLOVER
+TRIP_METER_ROLLOVER = 1000  # trip meters wrap here, so a reading is always below it
 
 
 # Odometer unit options (for per-vehicle override)

@@ -25,8 +25,7 @@
                                 data-uses-tessie="{{ 'true' if vehicle.uses_tessie_odometer() else 'false' }}"
                                 data-tessie-odometer="{% if vehicle.tessie_last_odometer %}{% if vehicle.get_effective_odometer_unit() == 'mi' %}{{ (vehicle.tessie_last_odometer * 0.621371)|round|int }}{% else %}{{ vehicle.tessie_last_odometer|round|int }}{% endif %}{% endif %}"
                                 data-default-fuel-grade="{{ vehicle.default_fuel_grade or '' }}"
-                                data-mileage-mode="{{ vehicle.mileage_mode }}"
-                                data-last-trip="{{ vehicle.get_last_trip_reading() if vehicle.get_last_trip_reading() is not none else '' }}">
+                                data-mileage-mode="{{ vehicle.mileage_mode }}">
                             {{ vehicle.name }}
                         </option>
                         {% endfor %}
@@ -216,10 +215,7 @@ function updateVehicleOdometer(vehicleId) {
     tripInput.required = useTrip;
     document.getElementById('last-odometer-line').classList.toggle('hidden', useTrip);
     document.getElementById('trip-unit-label').textContent = odometerUnit;
-    const lastTrip = selectedOption.getAttribute('data-last-trip');
-    document.getElementById('trip-hint').textContent = fixedMode ? ''
-        : lastTrip ? {{ _('Last trip meter reading')|tojson }} + ': ' + lastTrip
-        : {{ _('First trip meter fill-up starts a new baseline; MPG begins at the next one.')|tojson }};
+    document.getElementById('trip-hint').textContent = {{ _('Distance on the trip meter since your last fill-up. Reset it after filling up.')|tojson }};
 
     // Update last odometer display and unit labels
     document.getElementById('last-odometer').textContent = lastOdometer || 0;

@@ -564,7 +564,7 @@ def api_create_fuel_log(vehicle_id):
     """
     Create a fuel log
 
-    Required fields: date, and odometer or trip_reading (trip meter value, wraps at 1000)
+    Required fields: date, and odometer or trip_reading (distance since previous fill-up, under 1000)
     Optional fields: volume, price_per_unit, total_cost, fuel_grade, is_full_tank, is_missed, station, notes
     """
     user = get_api_user()
