@@ -1,5 +1,6 @@
 import csv
 import hashlib
+import hmac
 import io
 import json
 import logging
@@ -12,7 +13,8 @@ from functools import wraps
 from datetime import datetime
 from flask import Blueprint, jsonify, request, send_from_directory, current_app, url_for, render_template, Response, flash, redirect, session
 from flask_login import login_required, current_user
-from app import db
+from app import db, csrf
+from app.security import sanitize_html
 from app.models import (
     User, Vehicle, VehicleSpec, FuelLog, Expense, EXPENSE_CATEGORIES,
     Reminder, MaintenanceSchedule, RecurringExpense, FuelStation,
@@ -26,6 +28,19 @@ from config import APP_VERSION
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('api', __name__, url_prefix='/api')
+
+
+@bp.before_request
+def csrf_protect_session_requests():
+    """The blueprint is CSRF-exempt for API-key clients; browser-session requests still need the token.
+
+    A cross-site page can't attach these headers without a CORS preflight, so their presence
+    means the request isn't a forged form post.
+    """
+    if not current_app.config.get('WTF_CSRF_ENABLED', True):
+        return
+    if not any(request.headers.get(h) for h in ('Authorization', 'X-API-Key', 'X-Internal-Token')):
+        csrf.protect()
 
 
 # =============================================================================
@@ -159,7 +174,7 @@ def test_notification():
         topic = request.form.get('ntfy_topic')
         if not topic:
             return jsonify({'success': False, 'error': 'Please enter an ntfy topic'})
-        success, error = NotificationService.send_ntfy(topic, title, message)
+        success, error = NotificationService.send_ntfy(topic, title, message, allow_private=current_user.is_admin)
     elif method == 'pushover':
         user_key = request.form.get('pushover_user_key')
         if not user_key:
@@ -175,7 +190,7 @@ def test_notification():
             'user_email': current_user.email,
             'test': True,
         }
-        success, error = NotificationService.send_webhook(webhook_url, payload)
+        success, error = NotificationService.send_webhook(webhook_url, payload, allow_private=current_user.is_admin)
     else:
         return jsonify({'success': False, 'error': f'Unknown method: {method}'})
 
@@ -251,15 +266,15 @@ def process_reminders():
 
     Can also be triggered manually by an admin from the UI.
     """
-    # Check for API key or admin session
+    # Check for an admin's API key or admin session
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
     api_user = User.get_by_api_key(token) if token else None
 
-    if not (api_user or (current_user and current_user.is_authenticated and current_user.is_admin)):
+    if not ((api_user and api_user.is_admin) or (current_user and current_user.is_authenticated and current_user.is_admin)):
         # Also allow internal calls with the app secret
-        internal_token = request.headers.get('X-Internal-Token')
-        expected_token = current_app.config.get('INTERNAL_API_KEY')
-        if not internal_token or not expected_token or internal_token != expected_token:
+        internal_token = request.headers.get('X-Internal-Token', '')
+        expected_token = current_app.config.get('INTERNAL_API_KEY') or ''
+        if not internal_token or not expected_token or not hmac.compare_digest(internal_token, expected_token):
             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
 
     from app.services.reminder_processor import process_due_reminders
@@ -275,14 +290,26 @@ def process_reminders():
 # File Serving
 # =============================================================================
 
+def _upload_vehicle_ids(filename):
+    """IDs of the vehicles an uploaded file belongs to (photo, document, or attachment)."""
+    ids = {v.id for v in Vehicle.query.filter_by(image_filename=filename)}
+    ids |= {d.vehicle_id for d in Document.query.filter_by(filename=filename)}
+    for att in Attachment.query.filter_by(filename=filename):
+        owner = att.fuel_log or att.expense or (att.shopping_item and att.shopping_item.project)
+        ids.add(att.vehicle_id or (owner and owner.vehicle_id))
+    return ids
+
+
 @bp.route('/uploads/<filename>')
 def uploaded_file(filename):
-    """Serve uploaded files. Logo is public (shown on login page); all other uploads require auth."""
+    """Serve uploaded files. Logo is public (shown on login page); other files only to users with access to their vehicle."""
     from app.models import AppSettings
-    logo_filename = AppSettings.get('logo_filename')
-    if filename != logo_filename:
+    if filename != AppSettings.get('logo_filename'):
         if not current_user.is_authenticated:
             return current_app.login_manager.unauthorized()
+        accessible = {v.id for v in current_user.get_all_vehicles()}
+        if not _upload_vehicle_ids(filename) & accessible:
+            return jsonify({'error': 'Not found'}), 404
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
 
 
@@ -537,7 +564,7 @@ def api_create_fuel_log(vehicle_id):
     """
     Create a fuel log
 
-    Required fields: date, odometer
+    Required fields: date, and odometer or trip_reading (distance since previous fill-up, under 1000)
     Optional fields: volume, price_per_unit, total_cost, fuel_grade, is_full_tank, is_missed, station, notes
     """
     user = get_api_user()
@@ -553,8 +580,14 @@ def api_create_fuel_log(vehicle_id):
     if not data.get('date'):
         return jsonify({'error': 'date is required (YYYY-MM-DD)', 'code': 'validation_error'}), 400
 
-    if not data.get('odometer'):
-        return jsonify({'error': 'odometer is required', 'code': 'validation_error'}), 400
+    trip_reading = None
+    if data.get('trip_reading') is not None:
+        from app.routes.fuel import parse_trip_reading
+        trip_reading, err = parse_trip_reading(data['trip_reading'])
+        if err:
+            return jsonify({'error': err, 'code': 'validation_error'}), 400
+    elif not data.get('odometer'):
+        return jsonify({'error': 'odometer or trip_reading is required', 'code': 'validation_error'}), 400
 
     try:
         date = datetime.strptime(data['date'], '%Y-%m-%d').date()
@@ -569,7 +602,8 @@ def api_create_fuel_log(vehicle_id):
         vehicle_id=vehicle_id,
         user_id=user.id,
         date=date,
-        odometer=float(data['odometer']),
+        odometer=0 if trip_reading is not None else float(data['odometer']),
+        trip_reading=trip_reading,
         volume=float(data['volume']) if data.get('volume') else None,
         price_per_unit=float(data['price_per_unit']) if data.get('price_per_unit') else None,
         total_cost=float(data['total_cost']) if data.get('total_cost') else None,
@@ -585,6 +619,7 @@ def api_create_fuel_log(vehicle_id):
         log.total_cost = round(log.volume * log.price_per_unit, 2)
 
     db.session.add(log)
+    vehicle.rebuild_trip_odometers()
     db.session.commit()
 
     return jsonify(log.to_dict()), 201
@@ -623,7 +658,15 @@ def api_update_fuel_log(log_id):
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD', 'code': 'validation_error'}), 400
 
-    if 'odometer' in data:
+    if log.trip_reading is not None:
+        # Trip meter entry: odometer is derived, only the trip reading can change
+        if 'trip_reading' in data:
+            from app.routes.fuel import parse_trip_reading
+            trip_reading, err = parse_trip_reading(data['trip_reading'])
+            if err:
+                return jsonify({'error': err, 'code': 'validation_error'}), 400
+            log.trip_reading = trip_reading
+    elif 'odometer' in data:
         log.odometer = float(data['odometer'])
     if 'volume' in data:
         log.volume = float(data['volume']) if data['volume'] else None
@@ -644,6 +687,7 @@ def api_update_fuel_log(log_id):
     if 'notes' in data:
         log.notes = data['notes']
 
+    log.vehicle.rebuild_trip_odometers()
     db.session.commit()
     return jsonify(log.to_dict())
 
@@ -658,7 +702,10 @@ def api_delete_fuel_log(log_id):
     if log.vehicle not in user.get_all_vehicles():
         return jsonify({'error': 'Fuel log not found or access denied', 'code': 'not_found'}), 404
 
+    vehicle = log.vehicle
     db.session.delete(log)
+    db.session.flush()
+    vehicle.rebuild_trip_odometers()
     db.session.commit()
 
     return jsonify({'success': True, 'message': 'Fuel log deleted'})
@@ -2365,6 +2412,7 @@ def _restore_backup_data(data, user, upload_folder):
             registration=vd.get('registration'),
             vin=vd.get('vin'),
             fuel_type=vd.get('fuel_type', 'petrol'),
+            mileage_mode=vd.get('mileage_mode') or 'odometer',
             tank_capacity=vd.get('tank_capacity'),
             battery_capacity=vd.get('battery_capacity'),
             is_active=vd.get('is_active', True),
@@ -2407,6 +2455,7 @@ def _restore_backup_data(data, user, upload_folder):
                 user_id=user.id,
                 date=_parse_date(ld.get('date')),
                 odometer=ld.get('odometer'),
+                trip_reading=ld.get('trip_reading'),
                 volume=ld.get('volume'),
                 price_per_unit=ld.get('price_per_unit'),
                 total_cost=ld.get('total_cost'),
@@ -2428,6 +2477,8 @@ def _restore_backup_data(data, user, upload_folder):
                     file_size=ad.get('file_size', 0),
                     description=ad.get('description'),
                 ))
+
+        vehicle.rebuild_trip_odometers()
 
         # expenses (ids/receipts remembered so shopping projects can relink below)
         expense_id_map = {}
@@ -2601,7 +2652,7 @@ def _restore_backup_data(data, user, upload_folder):
                 vehicle_id=vehicle.id,
                 user_id=user.id,
                 title=nd.get('title', ''),
-                content=nd.get('content'),
+                content=sanitize_html(nd.get('content')),
                 is_pinned=nd.get('is_pinned', False),
             ))
             stats['notes'] += 1
@@ -3712,6 +3763,8 @@ def csv_import_execute():
                 if len(errors) < max_errors:
                     errors.append(f'Row {row_num}: {str(e)}')
 
+        if data_type == 'fuel_logs':
+            vehicle.rebuild_trip_odometers()
         db.session.commit()
 
         label = DATA_TYPE_LABELS.get(data_type, data_type)

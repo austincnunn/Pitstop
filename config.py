@@ -58,6 +58,8 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     # Set SESSION_COOKIE_SECURE=true if served over HTTPS (e.g. behind a TLS-terminating reverse proxy)
     SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+    # Periodically ask GitHub for a newer release and show admins a banner; DISABLE_UPDATE_CHECK=true turns it off
+    UPDATE_CHECK_ENABLED = os.environ.get('DISABLE_UPDATE_CHECK', 'false').lower() != 'true'
 
     # OpenID Connect single sign-on (e.g. Authelia, Authentik, Keycloak)
     OIDC_ENABLED = os.environ.get('OIDC_ENABLED', 'false').lower() == 'true'

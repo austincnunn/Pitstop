@@ -15,7 +15,7 @@ from app.security import (
 )
 from app.services.notifications import NotificationService
 from app.services.oidc import get_oidc_client, is_oidc_enabled, password_login_enabled, resolve_user
-from config import GITHUB_REPO, APP_VERSION
+from config import GITHUB_REPO
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -299,22 +299,16 @@ def register():
 @bp.route('/check-updates')
 @login_required
 def check_updates():
-    """Check GitHub releases for a newer version than the one currently running."""
+    """Check GitHub for a newer version than the one currently running."""
+    from app.services.update_check import check_for_update
     try:
-        response = requests.get(
-            f'https://api.github.com/repos/{GITHUB_REPO}/releases/latest',
-            timeout=5,
-        )
-        response.raise_for_status()
-        release = response.json()
-        latest_version = release.get('tag_name', '').lstrip('v')
-
+        result = check_for_update()
         return jsonify({
             'success': True,
-            'current_version': APP_VERSION,
-            'latest_version': latest_version,
-            'update_available': bool(latest_version) and latest_version != APP_VERSION,
-            'release_url': release.get('html_url'),
+            'current_version': result['current'],
+            'latest_version': result['latest'],
+            'update_available': result['update_available'],
+            'release_url': result['url'],
         })
     except requests.RequestException as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -496,19 +490,22 @@ def allowed_file(filename):
 @login_required
 def notifications():
     """Update user notification preferences"""
-    # Validate webhook URL to prevent SSRF
+    # Validate webhook/ntfy URLs to prevent SSRF (admins may target their own network)
     webhook_url = request.form.get('webhook_url') or None
-    if webhook_url:
-        is_valid, error_msg = validate_webhook_url(webhook_url)
-        if not is_valid:
-            flash(_('Invalid webhook URL: %(error)s') % {'error': error_msg}, 'error')
-            return redirect(url_for('auth.settings') + '#notifications')
+    ntfy_topic = request.form.get('ntfy_topic') or None
+    ntfy_url = ntfy_topic if ntfy_topic and ntfy_topic.startswith(('http://', 'https://')) else None
+    for url in (webhook_url, ntfy_url):
+        if url and not current_user.is_admin:
+            is_valid, error_msg = validate_webhook_url(url)
+            if not is_valid:
+                flash(_('Invalid webhook URL: %(error)s') % {'error': error_msg}, 'error')
+                return redirect(url_for('auth.settings') + '#notifications')
 
     current_user.email_reminders = request.form.get('email_reminders') == 'true'
     current_user.reminder_days_before = safe_int(request.form.get('reminder_days_before'), default=7)
     current_user.notification_method = request.form.get('notification_method', 'email')
     current_user.webhook_url = webhook_url
-    current_user.ntfy_topic = request.form.get('ntfy_topic') or None
+    current_user.ntfy_topic = ntfy_topic
     current_user.pushover_user_key = request.form.get('pushover_user_key') or None
     db.session.commit()
     flash(_('Notification preferences updated'), 'success')

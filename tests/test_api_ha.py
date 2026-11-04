@@ -208,7 +208,6 @@ class TestHaSummary:
 
 
 class TestHaAddFuel:
-    @pytest.mark.xfail(reason="HA add_fuel route does not set user_id on FuelLog (nullable=False), causing DB integrity error")
     def test_add_fuel_success(self, client, ha_headers, ha_vehicle):
         resp = client.post(
             '/api/ha/fuel/add',

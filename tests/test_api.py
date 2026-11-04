@@ -144,8 +144,8 @@ class TestProcessReminders:
         assert data['success'] is True
         assert 'stats' in data
 
-    def test_process_reminders_with_api_key(self, client, test_user):
-        api_key = test_user.generate_api_key()
+    def test_process_reminders_with_admin_api_key(self, client, admin_user):
+        api_key = admin_user.generate_api_key()
         _db_ext.session.commit()
         resp = client.post(
             '/api/reminders/process',

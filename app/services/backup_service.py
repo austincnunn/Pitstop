@@ -195,6 +195,7 @@ def _serialize_vehicle(vehicle, files_to_backup):
         'registration': vehicle.registration,
         'vin': vehicle.vin,
         'fuel_type': vehicle.fuel_type,
+        'mileage_mode': vehicle.mileage_mode,
         'tank_capacity': vehicle.tank_capacity,
         'battery_capacity': vehicle.battery_capacity,
         'is_active': vehicle.is_active,
@@ -243,7 +244,7 @@ def _serialize_vehicle(vehicle, files_to_backup):
         ld = {
             'id': log.id,
             'date': log.date.isoformat() if log.date else None,
-            'odometer': log.odometer, 'volume': log.volume,
+            'odometer': log.odometer, 'trip_reading': log.trip_reading, 'volume': log.volume,
             'price_per_unit': log.price_per_unit, 'total_cost': log.total_cost,
             'is_full_tank': log.is_full_tank, 'is_missed': log.is_missed,
             'station': log.station, 'notes': log.notes,
