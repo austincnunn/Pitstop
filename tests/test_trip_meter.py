@@ -36,6 +36,7 @@ def test_trip_meter_running_total_and_mpg(auth_client, sample_vehicle):
     a, b, c = logs(sample_vehicle)
     assert [l.trip_reading for l in (a, b, c)] == [60.6, 300, 300]
     assert [l.odometer for l in (a, b, c)] == [60.6, 360.6, 660.6]
+    assert sample_vehicle.get_total_distance() == 660.6  # first fill-up's trip counts
     assert b.get_consumption('mpg') == 30
     assert sample_vehicle.get_average_consumption('mpg') == 30
 
