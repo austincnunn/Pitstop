@@ -34,7 +34,7 @@ from functools import wraps
 from app import db
 from app.models import (
     User, Vehicle, FuelLog, Expense, MaintenanceSchedule,
-    RecurringExpense, Document, Reminder
+    RecurringExpense, Document, Reminder, logs_distance
 )
 from datetime import date, timedelta
 from sqlalchemy import func
@@ -174,21 +174,19 @@ def vehicle_stats(vehicle_id, user):
     total_fuel_cost = sum(log.total_cost for log in fuel_logs)
 
     # Calculate distance driven
-    if len(fuel_logs) >= 2:
-        total_distance = fuel_logs[-1].odometer - fuel_logs[0].odometer
-    else:
-        total_distance = 0
+    total_distance = logs_distance(fuel_logs)
 
     # Calculate average consumption
     # Skip first fill for consumption calculation (don't know previous fill level)
-    if len(fuel_logs) >= 2 and total_distance > 0:
+    span = fuel_logs[-1].odometer - fuel_logs[0].odometer if fuel_logs else 0
+    if len(fuel_logs) >= 2 and span > 0:
         consumption_fuel = sum(log.volume for log in fuel_logs[1:])
         if vehicle.unit_distance == 'mi':
             # MPG (higher is better)
-            avg_consumption = total_distance / consumption_fuel if consumption_fuel > 0 else 0
+            avg_consumption = span / consumption_fuel if consumption_fuel > 0 else 0
         else:
             # L/100km (lower is better)
-            avg_consumption = (consumption_fuel / total_distance) * 100 if total_distance > 0 else 0
+            avg_consumption = (consumption_fuel / span) * 100
     else:
         avg_consumption = 0
 
@@ -333,8 +331,7 @@ def summary(user):
             FuelLog.odometer.asc()
         ).all()
 
-        if len(fuel_logs) >= 2:
-            total_distance += fuel_logs[-1].odometer - fuel_logs[0].odometer
+        total_distance += logs_distance(fuel_logs)
 
         total_fuel_cost += sum(log.total_cost for log in fuel_logs)
 

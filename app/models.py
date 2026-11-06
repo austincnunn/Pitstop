@@ -370,9 +370,7 @@ class Vehicle(db.Model):
 
         # Otherwise calculate from fuel logs
         logs = self.fuel_logs.order_by(FuelLog.odometer).all()
-        if len(logs) < 2:
-            return 0
-        return logs[-1].odometer - logs[0].odometer
+        return logs_distance(logs)
 
     def get_average_consumption(self, consumption_unit=None):
         """Calculate average fuel consumption.
@@ -806,6 +804,14 @@ MILEAGE_MODES = [
 ]
 
 TRIP_METER_ROLLOVER = 1000  # trip meters wrap here, so a reading is always below it
+
+
+def logs_distance(logs):
+    """Distance covered by fuel logs sorted by odometer. A trip-meter first log's
+    reading is distance driven before it, so it counts too."""
+    if not logs:
+        return 0
+    return logs[-1].odometer - logs[0].odometer + (logs[0].trip_reading or 0)
 
 
 # Odometer unit options (for per-vehicle override)
