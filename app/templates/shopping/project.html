@@ -57,8 +57,11 @@
         <label class="flex items-center gap-3 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">
             <input type="checkbox" id="select-all" class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">{{ _('Select all') }}
         </label>
-        <button type="submit" id="bulk-delete-btn" hidden
-                class="text-sm font-medium text-red-600 hover:text-red-900">{{ _('Delete selected') }}</button>
+        <div class="flex items-center gap-3">
+            <button type="submit" id="bulk-delete-btn" hidden
+                    class="text-sm font-medium text-red-600 hover:text-red-900">{{ _('Delete selected') }}</button>
+            <span class="w-12 text-center text-xs font-medium text-gray-500 dark:text-gray-400">{{ _('Bought') }}</span>
+        </div>
     </form>
     <ul class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for item in items %}
@@ -100,21 +103,19 @@
                 <a href="{{ url_for('shopping.edit_item', item_id=item.id) }}" class="text-primary-600 hover:text-primary-900">{{ _('Edit') }}</a>
             </div>
             {% if item.is_purchased %}
-            <form method="POST" action="{{ url_for('shopping.unpurchase_item', item_id=item.id) }}" class="pt-0.5">
+            <form method="POST" action="{{ url_for('shopping.unpurchase_item', item_id=item.id) }}" class="w-12 flex-shrink-0 flex justify-center pt-0.5">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">{{ _('Bought?') }}
-                <input type="checkbox" checked
+                <input type="checkbox" checked aria-label="{{ _('Bought') }}"
                        onchange='if (confirm({{ _("Mark as not purchased? Its cost and receipts will be removed from the expense.")|tojson }})) { this.form.submit(); } else { this.checked = true; }'
-                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"></label>
+                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 cursor-pointer">
             </form>
             {% else %}
-            <div class="pt-0.5">
-                <label class="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400">{{ _('Bought?') }}
-                <input type="checkbox" data-purchase
+            <div class="w-12 flex-shrink-0 flex justify-center pt-0.5">
+                <input type="checkbox" data-purchase aria-label="{{ _('Bought') }}"
                        data-action="{{ url_for('shopping.purchase_item', item_id=item.id) }}"
                        data-name="{{ item.name }}"
                        data-price="{{ '%.2f'|format((item.est_price or 0) * (item.quantity or 1)) if item.est_price else '' }}"
-                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"></label>
+                       class="h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 cursor-pointer">
             </div>
             {% endif %}
         </li>
